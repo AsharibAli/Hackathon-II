@@ -1,0 +1,13 @@
+[project]
+name = "todo-cli"
+version = "1.0.0"
+description = "In-memory Python console todo application"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]

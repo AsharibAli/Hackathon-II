@@ -1,0 +1,225 @@
+# Todo Full-Stack Web Application - Comprehensive .gitignore
+
+# ============================================
+# Environment & Secrets
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+*.env
+.envrc
+
+# ============================================
+# Python (Backend - FastAPI, SQLModel, uv)
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# uv specific
+.uv/
+uv.lock
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Alembic (Database migrations)
+alembic/versions/__pycache__/
+
+# ============================================
+# Node.js/JavaScript/TypeScript (Frontend - Next.js, pnpm)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
+
+# Next.js
+.next/
+out/
+
+# pnpm
+.pnpm-store/
+pnpm-lock.yaml
+
+# Turbo
+.turbo
+
+# ============================================
+# IDEs & Editors
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# JetBrains IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ============================================
+# Operating System Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+
+# ============================================
+# Database
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# ============================================
+# Documentation (generated)
+# ============================================
+site/
+docs/_build/
+
+# ============================================
+# Package Manager Locks (optional - uncomment if needed)
+# ============================================
+# package-lock.json
+# yarn.lock
+
+# ============================================
+# Build Artifacts
+# ============================================
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# ============================================
+# Spec-Kit Plus (keep tracked)
+# ============================================
+# Note: .specify/ directory and specs/ are intentionally tracked
+# Only ignore generated artifacts within them
+.specify/.cache/
+specs/**/*.tmp

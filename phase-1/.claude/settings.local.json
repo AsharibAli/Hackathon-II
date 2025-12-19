@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(git fetch:*)",
+      "Bash(ls:*)",
+      "Bash(pwsh:*)",
+      "Bash(if [ -d \"specs/001-todo-cli/checklists\" ])",
+      "Bash(then echo \"Checklists directory exists\")",
+      "Bash(else echo \"No checklists directory\")",
+      "Bash(fi)",
+      "Bash(uv init:*)",
+      "Bash(uv python pin:*)",
+      "Bash(python:*)"
+    ]
+  }
+}
