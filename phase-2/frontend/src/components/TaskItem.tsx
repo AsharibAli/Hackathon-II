@@ -8,7 +8,6 @@ import { useState } from "react";
 import { Task } from "@/types/task";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
 import { Pencil, Trash2 } from "lucide-react";
@@ -38,58 +37,58 @@ export function TaskItem({
 
   return (
     <>
-      <Card className={cn(
-        "transition-opacity",
-        task.is_completed && "opacity-60"
-      )}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Checkbox
-              checked={task.is_completed}
-              onCheckedChange={handleToggle}
-              className="mt-1"
-            />
-            <div className="flex-1 space-y-1">
-              <h3
-                className={cn(
-                  "font-medium",
-                  task.is_completed && "line-through text-muted-foreground"
-                )}
-              >
-                {task.title}
-              </h3>
-              {task.description && (
-                <p
-                  className={cn(
-                    "text-sm text-muted-foreground",
-                    task.is_completed && "line-through"
-                  )}
-                >
-                  {task.description}
-                </p>
+      <div
+        className={cn(
+          "group relative flex items-start gap-4 p-4 rounded-xl border bg-card transition-all duration-200 hover:shadow-md hover:border-primary/20",
+          task.is_completed && "opacity-60 bg-muted/30"
+        )}
+      >
+        <Checkbox
+          checked={task.is_completed}
+          onCheckedChange={handleToggle}
+          className="mt-0.5 h-5 w-5"
+        />
+        <div className="flex-1 min-w-0 space-y-1">
+          <h3
+            className={cn(
+              "font-medium text-foreground leading-tight",
+              task.is_completed && "line-through text-muted-foreground"
+            )}
+          >
+            {task.title}
+          </h3>
+          {task.description && (
+            <p
+              className={cn(
+                "text-sm text-muted-foreground leading-relaxed",
+                task.is_completed && "line-through"
               )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditDialogOpen(true)}
-                title="Edit task"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                title="Delete task"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            >
+              {task.description}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsEditDialogOpen(true)}
+            title="Edit task"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            title="Delete task"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       <EditTaskDialog
         task={task}

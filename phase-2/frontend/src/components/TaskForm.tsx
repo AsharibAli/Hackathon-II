@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tasksApi, ApiError } from "@/lib/api";
 import { Task } from "@/types/task";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 interface TaskFormProps {
   onTaskCreated?: (task: Task) => void;
@@ -85,14 +86,17 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create New Task</CardTitle>
+    <Card className="sticky top-4">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Plus className="h-5 w-5 text-primary" />
+          Create New Task
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">
+            <Label htmlFor="title" className="text-sm font-medium">
               Title <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -113,7 +117,7 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
             <textarea
               id="description"
               placeholder="Enter task description (optional)"
@@ -122,8 +126,8 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
               disabled={isLoading}
               aria-invalid={!!errors.description}
               maxLength={2000}
-              rows={3}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              rows={4}
+              className="flex w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description}</p>
@@ -134,13 +138,20 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
           </div>
 
           {errors.general && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+            <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
               {errors.general}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Task"}
+          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+            {isLoading ? (
+              "Creating..."
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Create Task
+              </>
+            )}
           </Button>
         </form>
       </CardContent>

@@ -72,8 +72,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         toast.success("Account created successfully!");
       }
 
-      // Redirect to main app
-      router.push("/app");
+      // Redirect to home page
+      router.push("/");
       router.refresh();
     } catch (error) {
       if (error instanceof ApiError) {
@@ -90,15 +90,15 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-2 text-center">
+        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+        <CardDescription className="text-base">{description}</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <Input
               id="email"
               type="email"
@@ -114,7 +114,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <Input
               id="password"
               type="password"
@@ -130,20 +130,20 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           {errors.general && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+            <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
               {errors.general}
             </div>
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
             {isLoading ? "Loading..." : submitText}
           </Button>
 
           <p className="text-sm text-center text-muted-foreground">
             {switchText}{" "}
-            <a href={switchLink} className="text-primary hover:underline">
+            <a href={switchLink} className="font-medium text-primary hover:underline">
               {switchLinkText}
             </a>
           </p>
