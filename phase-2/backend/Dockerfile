@@ -11,5 +11,8 @@ COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
+# Set working directory to src for correct imports
+WORKDIR /app/src
+
 # Run the app
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
