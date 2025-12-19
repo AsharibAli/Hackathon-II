@@ -1,55 +1,23 @@
-# ==============================================
-# Todo Application - Docker Compose
-# For local development and simple deployments
-# ==============================================
+# Todo Backend - Docker Compose
+# Usage: docker compose up -d
 
 services:
-  # ==============================================
-  # Backend API Service
-  # ==============================================
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: todo-backend
-    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      # Database connection (uses the db service)
       DATABASE_URL: postgresql://postgres:postgres@db:5432/todo_db
-
-      # JWT Configuration (CHANGE IN PRODUCTION!)
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-      JWT_ALGORITHM: HS256
-      JWT_EXPIRATION_HOURS: 24
-
-      # CORS - Allow frontend origins
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
-
-      # App Settings
-      DEBUG: ${DEBUG:-false}
-      HOST: 0.0.0.0
-      PORT: 8000
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      DEBUG: false
     depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - todo-network
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - db
 
-  # ==============================================
-  # PostgreSQL Database Service
-  # ==============================================
   db:
     image: postgres:16-alpine
     container_name: todo-db
-    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -57,53 +25,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: todo_db
     volumes:
-      # Persist database data
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - todo-network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d todo_db" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
-  # ==============================================
-  # Database Admin UI (Optional - for development)
-  # Access at http://localhost:5050
-  # ==============================================
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: todo-pgadmin
-    restart: unless-stopped
-    profiles:
-      - dev # Only starts with: docker compose --profile dev up
-    ports:
-      - "5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@todo.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - todo-network
-    depends_on:
-      - db
-
-# ==============================================
-# Volumes - Persistent data storage
-# ==============================================
 volumes:
   postgres_data:
-    name: todo-postgres-data
-  pgadmin_data:
-    name: todo-pgadmin-data
-
-# ==============================================
-# Networks
-# ==============================================
-networks:
-  todo-network:
-    name: todo-network
-    driver: bridge
