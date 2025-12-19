@@ -12,7 +12,7 @@ import { Task } from "@/types/task";
 export default function HomePage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleTaskCreated = (task: Task) => {
+  const handleTaskCreated = (_task: Task) => {
     // Trigger TaskList refresh
     setRefreshTrigger((prev) => prev + 1);
   };

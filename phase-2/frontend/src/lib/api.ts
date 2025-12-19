@@ -53,9 +53,9 @@ async function fetchApi<T>(
   const token = getAuthToken();
   const url = `${API_URL}${endpoint}`;
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   // Add Authorization header if token exists

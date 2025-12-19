@@ -5,7 +5,6 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const authSecret = process.env.BETTER_AUTH_SECRET || "dev-secret-key-change-in-production";
 const authUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
@@ -25,10 +24,6 @@ export const auth = betterAuth({
     requireEmailVerification: false, // Simplified for baseline
   },
   plugins: [nextCookies()],
-  advanced: {
-    // Custom handlers to integrate with our backend API
-    generateId: () => crypto.randomUUID(),
-  },
 });
 
 export type Session = typeof auth.$Infer.Session;
