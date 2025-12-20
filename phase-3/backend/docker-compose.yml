@@ -1,0 +1,31 @@
+# Todo Backend - Docker Compose
+# Usage: docker compose up -d
+
+services:
+  backend:
+    build: .
+    container_name: todo-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/todo_db
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      DEBUG: false
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: todo-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todo_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

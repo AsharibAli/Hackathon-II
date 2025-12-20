@@ -12,4 +12,8 @@ Read the given documentation [here](https://docs.google.com/document/d/1KHxeDNnq
 
 - Build a Todo Full-Stack Web Application
 
+### Phase 3 (Completed)
+
+- Build a Todo AI-powered Chatbot Application
+
 These projects are part of a hackathon demonstration of spec-driven development, given by [panaverity](https://panaversity.org/).
