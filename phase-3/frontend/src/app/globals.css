@@ -24,6 +24,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    
+    /* Sidebar colors - light mode */
+    --sidebar: 0 0% 97%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-muted: 215.4 16.3% 46.9%;
+    --sidebar-accent: 210 40% 93%;
+    --sidebar-border: 214.3 31.8% 91.4%;
   }
 
   .dark {
@@ -46,6 +53,13 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+    
+    /* Sidebar colors - dark mode (ChatGPT-style) */
+    --sidebar: 0 0% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-muted: 215 20.2% 65.1%;
+    --sidebar-accent: 0 0% 13%;
+    --sidebar-border: 0 0% 20%;
   }
 }
 

@@ -14,6 +14,7 @@ from middleware.errors import ErrorHandlingMiddleware
 from api import auth as auth_router
 from api import tasks as tasks_router
 from api import chat as chat_router
+from api import conversations as conversations_router
 
 # Configure logging
 logging.basicConfig(
@@ -93,6 +94,7 @@ async def health_check():
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(tasks_router.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(chat_router.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(conversations_router.router, prefix="/api/conversations", tags=["Conversations"])
 
 
 if __name__ == "__main__":

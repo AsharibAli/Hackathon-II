@@ -234,23 +234,73 @@ export const tasksApi = {
 // Chat API
 // ============================================
 
-import { ChatResponse, ConversationResponse } from "../types/chat";
+import { ChatResponse, ConversationResponse, ConversationSummary } from "../types/chat";
 
 export const chatApi = {
   /**
    * Send a message to the AI assistant.
    */
-  sendMessage: async (message: string): Promise<ChatResponse> => {
+  sendMessage: async (message: string, conversationId?: string): Promise<ChatResponse> => {
     return fetchApi<ChatResponse>("/api/chat/chat", {
       method: "POST",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, conversation_id: conversationId }),
     });
   },
 
   /**
-   * Get the current conversation history.
+   * Get a specific conversation history.
    */
-  getConversation: async (): Promise<ConversationResponse> => {
-    return fetchApi<ConversationResponse>("/api/chat/conversations");
+  getConversation: async (conversationId?: string): Promise<ConversationResponse> => {
+    const params = conversationId ? `?conversation_id=${conversationId}` : "";
+    return fetchApi<ConversationResponse>(`/api/chat/conversations${params}`);
+  },
+};
+
+// ============================================
+// Conversations API
+// ============================================
+
+export const conversationsApi = {
+  /**
+   * List all conversations for the current user.
+   */
+  list: async (): Promise<ConversationSummary[]> => {
+    return fetchApi<ConversationSummary[]>("/api/conversations");
+  },
+
+  /**
+   * Create a new conversation.
+   */
+  create: async (title?: string): Promise<ConversationSummary> => {
+    return fetchApi<ConversationSummary>("/api/conversations", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+  },
+
+  /**
+   * Get a specific conversation with messages.
+   */
+  get: async (conversationId: string): Promise<ConversationResponse> => {
+    return fetchApi<ConversationResponse>(`/api/conversations/${conversationId}`);
+  },
+
+  /**
+   * Rename a conversation.
+   */
+  rename: async (conversationId: string, title: string): Promise<ConversationSummary> => {
+    return fetchApi<ConversationSummary>(`/api/conversations/${conversationId}`, {
+      method: "PUT",
+      body: JSON.stringify({ title }),
+    });
+  },
+
+  /**
+   * Delete a conversation.
+   */
+  delete: async (conversationId: string): Promise<void> => {
+    return fetchApi<void>(`/api/conversations/${conversationId}`, {
+      method: "DELETE",
+    });
   },
 };

@@ -32,6 +32,12 @@ class Conversation(SQLModel, table=True):
         nullable=False
     )
 
+    title: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Conversation title (auto-generated or user-defined)"
+    )
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False

@@ -1,21 +1,25 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
-import { chatApi } from "../lib/api";
+import { WelcomeScreen } from "./chat/WelcomeScreen";
 import { Message } from "../types/chat";
 import { ScrollArea } from "./ui/scroll-area";
-import { toast } from "sonner";
 
-export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+interface ChatInterfaceProps {
+  messages: Message[];
+  isLoading: boolean;
+  onSendMessage: (content: string) => void;
+  conversationId: string | null;
+}
+
+export function ChatInterface({
+  messages,
+  isLoading,
+  onSendMessage,
+}: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadConversation();
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -23,51 +27,49 @@ export function ChatInterface() {
     }
   }, [messages]);
 
-  const loadConversation = async () => {
-    try {
-      setIsLoading(true);
-      const data = await chatApi.getConversation();
-      setMessages(data.messages);
-    } catch (error) {
-      console.error("Failed to load conversation:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSend = async (content: string) => {
-    // Optimistic update
-    const tempMessage: Message = {
-      id: "temp-" + Date.now(),
-      role: "user",
-      content: content,
-      created_at: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, tempMessage]);
-    setIsLoading(true);
-
-    try {
-      const response = await chatApi.sendMessage(content);
-      // Append the assistant's response
-      setMessages(prev => [...prev, response.message]);
-    } catch (error) {
-      toast.error("Failed to send message");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleStarterPrompt = (prompt: string) => {
+    onSendMessage(prompt);
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] border rounded-lg overflow-hidden bg-background mt-4">
-      <ScrollArea className="flex-1 p-4">
-        <div className="flex flex-col gap-4">
-          {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
-          ))}
-          <div ref={scrollRef} />
+    <div className="flex flex-col h-full">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-hidden">
+        {messages.length === 0 ? (
+          <WelcomeScreen onStarterPrompt={handleStarterPrompt} />
+        ) : (
+          <ScrollArea className="h-full">
+            <div className="max-w-3xl mx-auto px-4 py-6">
+              {messages.map((msg) => (
+                <ChatMessage key={msg.id} message={msg} />
+              ))}
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex items-center gap-4 py-4">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+              
+              <div ref={scrollRef} />
+            </div>
+          </ScrollArea>
+        )}
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <ChatInput onSend={onSendMessage} isLoading={isLoading} />
         </div>
-      </ScrollArea>
-      <ChatInput onSend={handleSend} isLoading={isLoading} />
+      </div>
     </div>
   );
 }
