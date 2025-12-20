@@ -42,7 +42,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className="relative flex items-end gap-2 bg-muted/50 border border-input rounded-2xl shadow-sm">
+      <div className="relative flex items-end gap-2 bg-muted/50 border border-input rounded-2xl shadow-sm focus-within:ring-0 focus-within:outline-none focus-within:border-input">
         <textarea
           ref={textareaRef}
           value={input}
@@ -51,7 +51,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           placeholder="Message AI Assistant..."
           disabled={isLoading}
           rows={1}
-          className="flex-1 resize-none bg-transparent px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px] scrollbar-thin"
+          className="flex-1 resize-none bg-transparent px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px] scrollbar-thin"
         />
         <div className="p-2">
           <Button
