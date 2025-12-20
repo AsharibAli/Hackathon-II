@@ -201,7 +201,7 @@ export default function Home() {
         <div className="text-center text-sm text-muted-foreground">
           <p>© 
             {new Date().getFullYear()} {" "}          
-           Todo App. Built with Next.js and FastAPI.</p>
+           Todo Application.</p>
         </div>
       </footer>
     </div>

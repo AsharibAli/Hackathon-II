@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="A modern, secure, multi-user todo application with JWT authentication",
+    description="A modern, secure, multi-user AI-Powered Todo application with JWT authentication",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",

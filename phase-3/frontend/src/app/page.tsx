@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { 
   CheckSquare, 
   LogOut, 
-  MessageSquare, 
   ArrowRight,
   Shield,
   Zap,
@@ -66,34 +65,33 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-muted/30">
         {/* Header */}
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <header className="container mx-auto px-4 py-6">
+          <nav className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-                <CheckSquare className="h-5 w-5 text-primary-foreground" />
+              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                <CheckSquare className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-bold">Todo App</h1>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold">AI-powered Todo App</span>
+                <p className="text-xs text-muted-foreground">
+                  Chat with your AI assistant to manage tasks
+                </p>
+              </div>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={handleLogout} 
+              className="gap-2"
+            >
               <LogOut className="h-4 w-4" />
               Logout
             </Button>
-          </div>
+          </nav>
         </header>
 
         {/* Main content */}
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <MessageSquare className="h-8 w-8 text-primary" />
-                <h2 className="text-3xl font-bold">Todo Assistant</h2>
-              </div>
-              <p className="text-muted-foreground ml-11">
-                Chat with your AI assistant to manage tasks
-              </p>
-            </div>
-
             <ChatInterface />
           </div>
         </main>
@@ -111,7 +109,7 @@ export default function Home() {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <CheckSquare className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">Todo App</span>
+            <span className="text-xl font-bold">AI Todo App</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -129,7 +127,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-5xl font-bold tracking-tight mb-6">
             Organize your life with{" "}
-            <span className="text-primary">Todo App</span>
+            <span className="text-primary">AI-powered Todo App</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             A modern, secure, and intuitive task management application. 
@@ -185,9 +183,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 mt-20 border-t">
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 
-            {new Date().getFullYear()} {" "}          
-           Todo App. Built with Next.js and FastAPI.</p>
+          <p>© {new Date().getFullYear()} AI-powered Todo App</p>
         </div>
       </footer>
     </div>

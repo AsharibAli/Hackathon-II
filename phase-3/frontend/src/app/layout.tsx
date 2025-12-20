@@ -11,8 +11,8 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Todo App",
-  description: "A modern, secure, multi-user todo application",
+  title: "AI-Powered Todo App",
+  description: "A modern, secure, multi-user todo application with AI-powered features",
 };
 
 export default function RootLayout({
