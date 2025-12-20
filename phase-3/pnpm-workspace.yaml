@@ -1,0 +1,7 @@
+# pnpm Workspace Configuration
+# Todo Full-Stack Web Application Monorepo
+
+packages:
+  - 'frontend'
+  # Add more packages here as needed
+  # - 'packages/*'
