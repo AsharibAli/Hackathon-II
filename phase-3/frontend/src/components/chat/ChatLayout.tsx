@@ -1,22 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar, SidebarToggle } from "./Sidebar";
 import { ChatInterface } from "../ChatInterface";
-import { conversationsApi, chatApi } from "@/lib/api";
+import { conversationsApi, chatApi, authApi, UserProfile } from "@/lib/api";
 import { ConversationSummary, Message } from "@/types/chat";
 import { toast } from "sonner";
 
 export function ChatLayout() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-  // Load conversations on mount
+  // Load user profile and conversations on mount
   useEffect(() => {
+    loadUserProfile();
     loadConversations();
   }, []);
 
@@ -29,14 +33,20 @@ export function ChatLayout() {
     }
   }, [activeConversationId]);
 
+  const loadUserProfile = async () => {
+    try {
+      const profile = await authApi.getProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error("Failed to load user profile:", error);
+    }
+  };
+
   const loadConversations = async () => {
     try {
       const data = await conversationsApi.list();
       setConversations(data);
-      // Set first conversation as active if exists and none selected
-      if (data.length > 0 && !activeConversationId) {
-        setActiveConversationId(data[0]?.id ?? null);
-      }
+      // Do NOT auto-select conversation - show welcome screen by default
     } catch (error) {
       console.error("Failed to load conversations:", error);
     } finally {
@@ -135,6 +145,30 @@ export function ChatLayout() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      toast.success("Logged out successfully");
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      // Logout locally even if API fails
+      authApi.logout();
+      router.push("/");
+      router.refresh();
+    }
+  };
+
+  const handleUpdateProfile = async (data: { full_name?: string; profile_picture?: string }) => {
+    try {
+      const updatedProfile = await authApi.updateProfile(data);
+      setUser(updatedProfile);
+      toast.success("Profile updated");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    }
+  };
+
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
@@ -165,6 +199,9 @@ export function ChatLayout() {
         onDeleteConversation={handleDeleteConversation}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        user={user}
+        onLogout={handleLogout}
+        onUpdateProfile={handleUpdateProfile}
       />
 
       {/* Main Chat Area */}

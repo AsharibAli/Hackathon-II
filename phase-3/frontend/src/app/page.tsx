@@ -5,23 +5,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChatLayout } from "@/components/chat/ChatLayout";
-import { authApi } from "@/lib/api";
-import { toast } from "sonner";
 import { 
   ArrowRight,
   Shield,
   Zap,
   Users,
-  Bot,
-  LogOut
+  Bot
 } from "lucide-react";
 
 export default function Home() {
-  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,18 +30,7 @@ export default function Home() {
     setIsLoading(false);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await authApi.logout();
-      toast.success("Logged out successfully");
-      setIsAuthenticated(false);
-      router.refresh();
-    } catch {
-      authApi.logout();
-      setIsAuthenticated(false);
-      router.refresh();
-    }
-  };
+
 
   // Loading state
   if (isLoading) {
@@ -63,15 +47,7 @@ export default function Home() {
   // Authenticated - Show ChatGPT-style Chat Interface
   if (isAuthenticated) {
     return (
-      <div className="h-screen relative">
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="absolute right-4 top-4 z-50 flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground bg-background/80 backdrop-blur-sm border rounded-lg shadow-sm transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
+      <div className="h-screen">
         <ChatLayout />
       </div>
     );

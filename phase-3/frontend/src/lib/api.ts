@@ -149,7 +149,37 @@ export const authApi = {
       clearAuthToken();
     }
   },
+
+  /**
+   * Get the current user's profile.
+   */
+  getProfile: async (): Promise<UserProfile> => {
+    return fetchApi<UserProfile>("/api/auth/me");
+  },
+
+  /**
+   * Update the current user's profile.
+   */
+  updateProfile: async (data: UpdateProfileRequest): Promise<UserProfile> => {
+    return fetchApi<UserProfile>("/api/auth/me", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
 };
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  profile_picture: string | null;
+  is_active: boolean;
+}
+
+export interface UpdateProfileRequest {
+  full_name?: string;
+  profile_picture?: string;
+}
 
 // ============================================
 // Tasks API

@@ -37,6 +37,18 @@ class User(SQLModel, table=True):
         nullable=False
     )
 
+    full_name: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="User's full name"
+    )
+
+    profile_picture: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="URL to user's profile picture"
+    )
+
     is_active: bool = Field(
         default=True,
         nullable=False

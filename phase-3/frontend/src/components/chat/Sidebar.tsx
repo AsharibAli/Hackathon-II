@@ -1,11 +1,22 @@
 "use client";
 
-
-import { PanelLeftClose, PanelLeft, Plus } from "lucide-react";
+import { useState } from "react";
+import { PanelLeftClose, PanelLeft, Plus, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ConversationItem } from "./ConversationItem";
+import { ConversationItem } from "@/components/chat/ConversationItem";
 import { ConversationSummary } from "@/types/chat";
+import { UserProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface SidebarProps {
   conversations: ConversationSummary[];
@@ -16,6 +27,9 @@ interface SidebarProps {
   onDeleteConversation: (id: string) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  user: UserProfile | null;
+  onLogout: () => void;
+  onUpdateProfile: (data: { full_name?: string; profile_picture?: string }) => void;
 }
 
 export function Sidebar({
@@ -27,7 +41,25 @@ export function Sidebar({
   onDeleteConversation,
   isCollapsed,
   onToggleCollapse,
+  user,
+  onLogout,
+  onUpdateProfile,
 }: SidebarProps) {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [editName, setEditName] = useState(user?.full_name || "");
+  const [editPicture, setEditPicture] = useState(user?.profile_picture || "");
+
+  const handleSaveProfile = () => {
+    onUpdateProfile({
+      full_name: editName || undefined,
+      profile_picture: editPicture || undefined,
+    });
+    setIsProfileOpen(false);
+  };
+
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+
   return (
     <aside
       className={cn(
@@ -71,7 +103,7 @@ export function Sidebar({
                 conversation={conversation}
                 isActive={conversation.id === activeConversationId}
                 onSelect={() => onSelectConversation(conversation.id)}
-                onRename={(title) => onRenameConversation(conversation.id, title)}
+                onRename={(title: string) => onRenameConversation(conversation.id, title)}
                 onDelete={() => onDeleteConversation(conversation.id)}
               />
             ))}
@@ -81,11 +113,108 @@ export function Sidebar({
 
       {/* User Section */}
       <div className="p-3 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 text-sidebar-foreground text-sm">
-          <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-            <span className="text-xs font-medium">U</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* User Avatar */}
+            {user?.profile_picture ? (
+              <img
+                src={user.profile_picture}
+                alt={displayName}
+                className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-sidebar-foreground">{avatarLetter}</span>
+              </div>
+            )}
+            
+            {/* User Info */}
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium text-sidebar-foreground truncate">
+                {displayName}
+              </span>
+              {user?.email && (
+                <span className="text-xs text-sidebar-muted truncate">
+                  {user.email}
+                </span>
+              )}
+            </div>
           </div>
-          <span className="font-medium">User</span>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Profile Settings Dialog */}
+            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  onClick={() => {
+                    setEditName(user?.full_name || "");
+                    setEditPicture(user?.profile_picture || "");
+                  }}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Profile Settings</DialogTitle>
+                  <DialogDescription>
+                    Update your profile information.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      value={user?.email || ""}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="profilePicture">Profile Picture URL</Label>
+                    <Input
+                      id="profilePicture"
+                      value={editPicture}
+                      onChange={(e) => setEditPicture(e.target.value)}
+                      placeholder="https://example.com/avatar.jpg"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsProfileOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveProfile}>
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Logout Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-sidebar-muted hover:text-destructive hover:bg-sidebar-accent"
+              onClick={onLogout}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </aside>

@@ -163,3 +163,70 @@ async def logout(
     """
     result = AuthService.logout_user()
     return LogoutResponse(**result)
+
+
+class UserProfileResponse(BaseModel):
+    """Response model for user profile."""
+    id: str
+    email: str
+    full_name: str | None = None
+    profile_picture: str | None = None
+    is_active: bool
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request model for updating user profile."""
+    full_name: str | None = Field(None, max_length=100, description="User's full name")
+    profile_picture: str | None = Field(None, max_length=500, description="URL to profile picture")
+
+
+@router.get(
+    "/me",
+    response_model=UserProfileResponse,
+    summary="Get current user profile",
+    description="Get the profile of the currently authenticated user."
+)
+async def get_profile(
+    current_user: Annotated[User, Depends(get_current_user)]
+) -> UserProfileResponse:
+    """Get the current user's profile."""
+    return UserProfileResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        full_name=current_user.full_name,
+        profile_picture=current_user.profile_picture,
+        is_active=current_user.is_active
+    )
+
+
+@router.put(
+    "/me",
+    response_model=UserProfileResponse,
+    summary="Update current user profile",
+    description="Update the profile of the currently authenticated user."
+)
+async def update_profile(
+    request: UpdateProfileRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)]
+) -> UserProfileResponse:
+    """Update the current user's profile."""
+    from datetime import datetime, timezone
+    
+    if request.full_name is not None:
+        current_user.full_name = request.full_name
+    if request.profile_picture is not None:
+        current_user.profile_picture = request.profile_picture
+    
+    current_user.updated_at = datetime.now(timezone.utc)
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    
+    return UserProfileResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        full_name=current_user.full_name,
+        profile_picture=current_user.profile_picture,
+        is_active=current_user.is_active
+    )
