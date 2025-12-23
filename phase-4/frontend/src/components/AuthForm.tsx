@@ -43,7 +43,100 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function AuthFormContent({ mode }: AuthFormProps) {
+// Google Sign-In Button - separate component that uses the hook
+function GoogleSignInButton({ 
+  isLoading, 
+  onLoadingChange, 
+  onError 
+}: { 
+  isLoading: boolean; 
+  onLoadingChange: (loading: boolean) => void;
+  onError: (error: string) => void;
+}) {
+  const router = useRouter();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsGoogleLoading(true);
+      onLoadingChange(true);
+
+      try {
+        // Get user info from Google using the access token
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        });
+        
+        if (!userInfoResponse.ok) {
+          throw new Error("Failed to get Google user info");
+        }
+        
+        const userInfo = await userInfoResponse.json();
+
+        // Call our backend OAuth endpoint
+        await authApi.oauthLogin({
+          email: userInfo.email,
+          provider: "google",
+          provider_user_id: userInfo.sub,
+          full_name: userInfo.name,
+          profile_picture: userInfo.picture,
+        });
+
+        toast.success("Signed in with Google!");
+        router.push("/");
+        router.refresh();
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+        if (error instanceof ApiError) {
+          const detail = error.data?.detail || error.statusText;
+          onError(detail);
+          toast.error(detail);
+        } else {
+          onError("Failed to sign in with Google");
+          toast.error("Failed to sign in with Google");
+        }
+      } finally {
+        setIsGoogleLoading(false);
+        onLoadingChange(false);
+      }
+    },
+    onError: () => {
+      onError("Google sign-in was cancelled or failed");
+      toast.error("Google sign-in failed");
+      setIsGoogleLoading(false);
+      onLoadingChange(false);
+    },
+  });
+
+  const handleGoogleClick = () => {
+    setIsGoogleLoading(true);
+    onLoadingChange(true);
+    googleLogin();
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full h-11 gap-3 font-medium"
+      onClick={handleGoogleClick}
+      disabled={isGoogleLoading || isLoading}
+    >
+      {isGoogleLoading ? (
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : (
+        <GoogleIcon className="h-5 w-5" />
+      )}
+      Continue with Google
+    </Button>
+  );
+}
+
+interface AuthFormContentProps extends AuthFormProps {
+  googleEnabled: boolean;
+}
+
+function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -116,61 +209,6 @@ function AuthFormContent({ mode }: AuthFormProps) {
     }
   };
 
-  // Use Google Login hook for custom button
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsGoogleLoading(true);
-      setErrors({});
-
-      try {
-        // Get user info from Google using the access token
-        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-        
-        if (!userInfoResponse.ok) {
-          throw new Error("Failed to get Google user info");
-        }
-        
-        const userInfo = await userInfoResponse.json();
-
-        // Call our backend OAuth endpoint
-        await authApi.oauthLogin({
-          email: userInfo.email,
-          provider: "google",
-          provider_user_id: userInfo.sub,
-          full_name: userInfo.name,
-          profile_picture: userInfo.picture,
-        });
-
-        toast.success("Signed in with Google!");
-        router.push("/");
-        router.refresh();
-      } catch (error) {
-        console.error("Google sign-in error:", error);
-        if (error instanceof ApiError) {
-          const detail = error.data?.detail || error.statusText;
-          setErrors({ general: detail });
-          toast.error(detail);
-        } else {
-          setErrors({ general: "Failed to sign in with Google" });
-          toast.error("Failed to sign in with Google");
-        }
-      } finally {
-        setIsGoogleLoading(false);
-      }
-    },
-    onError: () => {
-      setErrors({ general: "Google sign-in was cancelled or failed" });
-      toast.error("Google sign-in failed");
-    },
-  });
-
-  const handleGoogleClick = () => {
-    setIsGoogleLoading(true);
-    googleLogin();
-  };
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-2 text-center">
@@ -179,31 +217,26 @@ function AuthFormContent({ mode }: AuthFormProps) {
       </CardHeader>
       
       <CardContent className="space-y-5">
-        {/* Custom Google Sign-In Button */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full h-11 gap-3 font-medium"
-          onClick={handleGoogleClick}
-          disabled={isGoogleLoading || isLoading}
-        >
-          {isGoogleLoading ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <GoogleIcon className="h-5 w-5" />
-          )}
-          Continue with Google
-        </Button>
+        {/* Custom Google Sign-In Button - only render if Google OAuth is enabled */}
+        {googleEnabled && (
+          <>
+            <GoogleSignInButton 
+              isLoading={isLoading} 
+              onLoadingChange={setIsGoogleLoading}
+              onError={(error) => setErrors({ general: error })}
+            />
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
-          </div>
-        </div>
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Email/Password Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -275,12 +308,12 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   // If no Google Client ID is configured, render without Google OAuth
   if (!googleClientId) {
-    return <AuthFormContent mode={mode} />;
+    return <AuthFormContent mode={mode} googleEnabled={false} />;
   }
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <AuthFormContent mode={mode} />
+      <AuthFormContent mode={mode} googleEnabled={true} />
     </GoogleOAuthProvider>
   );
 }
