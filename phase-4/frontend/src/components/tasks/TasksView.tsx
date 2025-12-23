@@ -13,7 +13,7 @@ export function TasksView() {
   // Use a refresh trigger to force TaskList to refetch after task creation
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleTaskCreated = useCallback((task: Task) => {
+  const handleTaskCreated = useCallback((_task: Task) => {
     // Increment refresh trigger to cause TaskList to refetch
     setRefreshTrigger((prev) => prev + 1);
   }, []);

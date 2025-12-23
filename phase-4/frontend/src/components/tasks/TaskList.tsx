@@ -14,10 +14,9 @@ import { Inbox, RefreshCw } from "lucide-react";
 
 interface TaskListProps {
   refreshTrigger?: number;
-  onTaskCreated?: (task: Task) => void;
 }
 
-export function TaskList({ refreshTrigger, onTaskCreated }: TaskListProps) {
+export function TaskList({ refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,17 +94,6 @@ export function TaskList({ refreshTrigger, onTaskCreated }: TaskListProps) {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
-  // Expose method to add new task
-  const addTask = useCallback((task: Task) => {
-    setTasks((prevTasks) => [task, ...prevTasks]);
-  }, []);
-
-  // Call onTaskCreated callback when component mounts to expose addTask method
-  useEffect(() => {
-    if (onTaskCreated) {
-      // This is a bit unconventional but allows parent to trigger task addition
-    }
-  }, [onTaskCreated]);
 
   if (isLoading) {
     return (
