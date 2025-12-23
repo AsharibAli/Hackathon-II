@@ -16,10 +16,12 @@ spec:
       labels:
         {{- include "taskai.backend.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if and .Values.postgresql.enabled (not .Values.externalDatabase.enabled) }}
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z {{ include "taskai.fullname" . }}-postgresql 5432; do echo waiting for postgres; sleep 2; done;']
+      {{- end }}
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
@@ -29,12 +31,21 @@ spec:
               protocol: TCP
           env:
             - name: DATABASE_URL
+              {{- if .Values.externalDatabase.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: DATABASE_URL
+              {{- else }}
               value: "postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ include "taskai.fullname" . }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+              {{- end }}
+            {{- if not .Values.externalDatabase.enabled }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "taskai.fullname" . }}-secrets
                   key: POSTGRES_PASSWORD
+            {{- end }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:

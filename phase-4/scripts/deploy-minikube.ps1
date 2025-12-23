@@ -11,10 +11,11 @@
 #   - docker installed
 #
 # Usage:
-#   .\scripts\deploy-minikube.ps1 [-OpenAIKey <key>] [-SkipBuild] [-Clean]
+#   .\scripts\deploy-minikube.ps1 [-OpenAIKey <key>] [-DatabaseUrl <url>] [-SkipBuild] [-Clean]
 
 param(
     [string]$OpenAIKey = $env:OPENAI_API_KEY,
+    [string]$DatabaseUrl = $env:DATABASE_URL,
     [switch]$SkipBuild,
     [switch]$Clean,
     [switch]$Help
@@ -28,6 +29,25 @@ $ProjectDir = Split-Path -Parent $ScriptDir
 $Namespace = "taskai"
 $ReleaseName = "taskai"
 $ChartPath = Join-Path $ProjectDir "helm\taskai"
+$EnvFile = Join-Path $ProjectDir ".env"
+
+# Load .env file if it exists
+if (Test-Path $EnvFile) {
+    Write-Host "[INFO] Loading configuration from .env file..." -ForegroundColor Blue
+    Get-Content $EnvFile | ForEach-Object {
+        if ($_ -match "^\s*([^#][^=]+)=(.*)$") {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            # Only set if not already provided via parameter or env var
+            if ($key -eq "DATABASE_URL" -and [string]::IsNullOrEmpty($DatabaseUrl)) {
+                $script:DatabaseUrl = $value
+            }
+            if ($key -eq "OPENAI_API_KEY" -and [string]::IsNullOrEmpty($OpenAIKey)) {
+                $script:OpenAIKey = $value
+            }
+        }
+    }
+}
 
 # Helper functions
 function Write-Info { param($Message) Write-Host "[INFO] $Message" -ForegroundColor Blue }
@@ -44,13 +64,15 @@ Usage:
     .\deploy-minikube.ps1 [OPTIONS]
 
 Options:
-    -OpenAIKey <key>    Set OpenAI API key
-    -SkipBuild          Skip Docker image build
-    -Clean              Clean up existing deployment first
-    -Help               Show this help message
+    -OpenAIKey <key>     Set OpenAI API key
+    -DatabaseUrl <url>   Set external database URL (e.g., Neon PostgreSQL)
+    -SkipBuild           Skip Docker image build
+    -Clean               Clean up existing deployment first
+    -Help                Show this help message
 
 Examples:
     .\deploy-minikube.ps1 -OpenAIKey "sk-..."
+    .\deploy-minikube.ps1 -OpenAIKey "sk-..." -DatabaseUrl "postgresql://..."  
     .\deploy-minikube.ps1 -SkipBuild
     .\deploy-minikube.ps1 -Clean -OpenAIKey "sk-..."
 
@@ -113,7 +135,7 @@ function Build-Images {
 
     Write-Info "Building frontend Docker image..."
     docker build `
-        --build-arg NEXT_PUBLIC_API_URL="http://localhost:30800" `
+        --build-arg NEXT_PUBLIC_API_URL="http://localhost:8080" `
         -t taskai-frontend:latest `
         "$ProjectDir\frontend"
     Write-Success "Frontend image built"
@@ -164,13 +186,27 @@ function Deploy-Helm {
     }
 
     # Deploy or upgrade
-    helm upgrade --install $ReleaseName $ChartPath `
-        --namespace $Namespace `
-        --create-namespace `
-        --set secrets.openaiApiKey="$OpenAIKey" `
-        --set frontend.env.NEXT_PUBLIC_API_URL="http://localhost:30800" `
-        --wait `
-        --timeout 10m
+    $helmArgs = @(
+        "upgrade", "--install", $ReleaseName, $ChartPath,
+        "--namespace", $Namespace,
+        "--create-namespace",
+        "--set", "secrets.openaiApiKey=$OpenAIKey",
+        "--set", "frontend.env.NEXT_PUBLIC_API_URL=http://localhost:8080",
+        "--wait",
+        "--timeout", "10m"
+    )
+
+    # Add external database config if DATABASE_URL is provided
+    if (-not [string]::IsNullOrEmpty($DatabaseUrl)) {
+        Write-Info "Using external database (DATABASE_URL provided)"
+        $helmArgs += "--set", "externalDatabase.enabled=true"
+        $helmArgs += "--set", "externalDatabase.url=$DatabaseUrl"
+        $helmArgs += "--set", "postgresql.enabled=false"
+    } else {
+        Write-Info "Using local PostgreSQL database"
+    }
+
+    & helm @helmArgs
 
     Write-Success "Helm deployment completed"
 }
@@ -187,34 +223,81 @@ function Wait-ForPods {
     Write-Success "All pods are ready"
 }
 
+# Start port forwarding for services
+function Start-PortForwarding {
+    Write-Info "Setting up port forwarding for localhost access..."
+
+    # Kill any existing port-forward processes on our ports
+    $existingProcesses = Get-NetTCPConnection -LocalPort 8080, 3000 -ErrorAction SilentlyContinue | 
+        Select-Object -ExpandProperty OwningProcess -Unique
+    foreach ($pid in $existingProcesses) {
+        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    }
+
+    # Start port forwarding for backend (8080 -> backend service)
+    $backendJob = Start-Job -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/taskai-backend 8080:8000 -n $ns 2>&1
+    } -ArgumentList $Namespace
+
+    # Start port forwarding for frontend (3000 -> frontend service)
+    $frontendJob = Start-Job -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/taskai-frontend 3000:3000 -n $ns 2>&1
+    } -ArgumentList $Namespace
+
+    # Wait a moment for port forwarding to establish
+    Start-Sleep -Seconds 3
+
+    # Verify port forwarding is working
+    $backendJobState = Get-Job -Id $backendJob.Id
+    $frontendJobState = Get-Job -Id $frontendJob.Id
+
+    if ($backendJobState.State -eq "Running" -and $frontendJobState.State -eq "Running") {
+        Write-Success "Port forwarding established successfully"
+    } else {
+        Write-Warning "Port forwarding may not be fully established. Check the job status with Get-Job"
+    }
+
+    # Store job IDs for later reference
+    $script:BackendJobId = $backendJob.Id
+    $script:FrontendJobId = $frontendJob.Id
+}
+
 # Display access information
 function Show-AccessInfo {
-    $minikubeIp = minikube ip
-
     Write-Host ""
     Write-Host "===========================================================" -ForegroundColor Green
     Write-Host "  TaskAI Deployment Successful!" -ForegroundColor Green
     Write-Host "===========================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Access URLs:"
-    Write-Host "  Frontend: http://${minikubeIp}:30300" -ForegroundColor Cyan
-    Write-Host "  Backend API: http://${minikubeIp}:30800" -ForegroundColor Cyan
-    Write-Host "  Swagger Docs: http://${minikubeIp}:30800/docs" -ForegroundColor Cyan
+    Write-Host "Access URLs (via port-forwarding):" -ForegroundColor White
+    Write-Host "  Frontend:     " -NoNewline; Write-Host "http://localhost:3000" -ForegroundColor Cyan
+    Write-Host "  Backend API:  " -NoNewline; Write-Host "http://localhost:8080" -ForegroundColor Cyan
+    Write-Host "  Swagger Docs: " -NoNewline; Write-Host "http://localhost:8080/docs" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Alternative (localhost access via minikube tunnel):"
-    Write-Host "  Run: minikube tunnel" -ForegroundColor Yellow -NoNewline
-    Write-Host " in a separate terminal"
-    Write-Host "  Frontend: http://localhost:30300" -ForegroundColor Cyan
-    Write-Host "  Backend: http://localhost:30800" -ForegroundColor Cyan
+    Write-Host "Port Forwarding Status:" -ForegroundColor Yellow
+    Write-Host "  Backend Job ID:  $script:BackendJobId (port 8080 -> backend:8000)"
+    Write-Host "  Frontend Job ID: $script:FrontendJobId (port 3000 -> frontend:3000)"
     Write-Host ""
-    Write-Host "Useful commands:"
-    Write-Host "  View pods:      kubectl get pods -n $Namespace"
-    Write-Host "  View logs:      kubectl logs -f deploy/taskai-backend -n $Namespace"
-    Write-Host "  Open dashboard: minikube dashboard"
+    Write-Host "Useful commands:" -ForegroundColor White
+    Write-Host "  View pods:         kubectl get pods -n $Namespace"
+    Write-Host "  View backend logs: kubectl logs -f deploy/taskai-backend -n $Namespace"
+    Write-Host "  View frontend logs: kubectl logs -f deploy/taskai-frontend -n $Namespace"
+    Write-Host "  Open dashboard:    minikube dashboard"
+    Write-Host "  Check port-forward: Get-Job | Where-Object { `$_.State -eq 'Running' }"
     Write-Host ""
-    Write-Host "To uninstall:"
+    Write-Host "To stop port forwarding:" -ForegroundColor Yellow
+    Write-Host "  Stop-Job $script:BackendJobId, $script:FrontendJobId"
+    Write-Host "  Remove-Job $script:BackendJobId, $script:FrontendJobId"
+    Write-Host ""
+    Write-Host "To uninstall:" -ForegroundColor Yellow
     Write-Host "  helm uninstall $ReleaseName -n $Namespace"
     Write-Host "  kubectl delete namespace $Namespace"
+    Write-Host ""
+    Write-Host "===========================================================" -ForegroundColor Green
+    Write-Host "  Services are now accessible on localhost!" -ForegroundColor Green
+    Write-Host "===========================================================" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -232,6 +315,7 @@ function Main {
     Build-Images
     Deploy-Helm
     Wait-ForPods
+    Start-PortForwarding
     Show-AccessInfo
 }
 

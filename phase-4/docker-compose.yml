@@ -24,7 +24,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://taskai:${POSTGRES_PASSWORD:-taskai_secret}@postgres:5432/taskai
+      DATABASE_URL: ${DATABASE_URL:-postgresql://taskai:${POSTGRES_PASSWORD:-taskai_secret}@postgres:5432/taskai}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-min-32-chars}
       JWT_ALGORITHM: HS256
       JWT_EXPIRATION_HOURS: 24
@@ -38,6 +38,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
