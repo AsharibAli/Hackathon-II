@@ -1,0 +1,53 @@
+# ==============================================
+# Docker Ignore - Exclude from image build
+# ==============================================
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Cache directories
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+# Environment files (use Docker secrets or env vars instead)
+.env
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker files (prevent recursive builds)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests (optional - remove if you want tests in image)
+tests/
+
+# Documentation
+*.md
+docs/
+
+# Logs
+*.log
+logs/
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3

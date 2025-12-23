@@ -49,7 +49,7 @@ advanced_agent = Agent(
     instructions="""You are a professional, concise assistant who always provides
     accurate information. When you don't know something, clearly state that.
     Focus on giving actionable insights when answering questions.""",
-    model="gpt-4o",
+    model="gpt-4.1-2025-04-14",
     model_settings=ModelSettings(
         temperature=0.3,  # Lower for more deterministic outputs (0.0-2.0)
         max_tokens=1024,  # Maximum length of response

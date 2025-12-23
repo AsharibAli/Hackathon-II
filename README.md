@@ -16,4 +16,8 @@ Read the given documentation [here](https://docs.google.com/document/d/1KHxeDNnq
 
 - Build a Todo AI-powered Chatbot Application
 
+### Phase 4 (Completed)
+
+- Build a Advance Todo Application with local kubernetes deployment.
+
 These projects are part of a hackathon demonstration of spec-driven development, given by [panaverity](https://panaversity.org/).

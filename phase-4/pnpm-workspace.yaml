@@ -1,0 +1,4 @@
+packages:
+  - frontend
+onlyBuiltDependencies:
+  - better-sqlite3

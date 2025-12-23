@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # OpenAI Configuration
     OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_MODEL: str = "gpt-4.1-2025-04-14"
 
     model_config = SettingsConfigDict(
         env_file=".env",

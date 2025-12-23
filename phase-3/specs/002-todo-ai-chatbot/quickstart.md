@@ -15,7 +15,7 @@ This guide walks through setting up the Phase-3 AI chatbot features on top of th
 Before starting, ensure you have:
 
 1. **Phase-2 application running** (backend + frontend + database)
-2. **OpenAI API key** with access to GPT-4 or GPT-4o
+2. **OpenAI API key** with access to GPT-4 or gpt-4.1-2025-04-14
 3. **Python 3.11+** with `uv` package manager
 4. **Node.js 18+** with `pnpm` package manager
 5. **Neon PostgreSQL** database with existing users and tasks
@@ -47,7 +47,7 @@ JWT_SECRET=...
 
 # New Phase-3 variables
 OPENAI_API_KEY=sk-your-openai-api-key
-OPENAI_MODEL=gpt-4o  # or gpt-4
+OPENAI_MODEL=gpt-4.1-2025-04-14  # or gpt-4
 ```
 
 ### 1.3 Run Database Migration

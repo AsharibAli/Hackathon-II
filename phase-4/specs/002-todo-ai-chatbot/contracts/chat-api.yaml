@@ -1,0 +1,251 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  description: |
+    Phase-3 Chat API for AI-powered todo management.
+    Extends the existing Phase-2 API with conversational capabilities.
+  version: 1.0.0
+  contact:
+    name: Todo App Team
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.todoapp.example.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Chat
+    description: Conversational AI endpoints
+  - name: Conversations
+    description: Conversation management endpoints
+
+paths:
+  /api/chat:
+    post:
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      summary: Send a message to the AI assistant
+      description: |
+        Sends a user message to the AI assistant and receives a response.
+        The assistant can invoke MCP tools to manage tasks.
+        All messages are persisted to the database.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              addTask:
+                summary: Add a new task
+                value:
+                  message: "Add a task to buy groceries"
+              listTasks:
+                summary: List tasks
+                value:
+                  message: "Show me my tasks"
+              completeTask:
+                summary: Complete a task
+                value:
+                  message: "Mark buy groceries as done"
+      responses:
+        '200':
+          description: Successful response from AI assistant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                taskAdded:
+                  summary: Task added response
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    role: "assistant"
+                    content: "I've added 'buy groceries' to your task list."
+                    created_at: "2025-12-19T10:00:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Message cannot be empty"
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Not authenticated"
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Too many requests. Please try again later."
+        '503':
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "AI service is temporarily unavailable. Please try again."
+
+  /api/conversations:
+    get:
+      operationId: getConversation
+      tags:
+        - Conversations
+      summary: Get current conversation history
+      description: |
+        Retrieves the current conversation for the authenticated user,
+        including all messages ordered chronologically.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of messages to return
+      responses:
+        '200':
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Phase-2 authentication
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User message in natural language
+          example: "Add a task to buy groceries"
+
+    ChatResponse:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique message identifier
+        role:
+          type: string
+          enum:
+            - assistant
+          description: Always 'assistant' for responses
+        content:
+          type: string
+          description: AI assistant's response
+        created_at:
+          type: string
+          format: date-time
+          description: Message timestamp (ISO 8601)
+
+    ConversationResponse:
+      type: object
+      required:
+        - id
+        - messages
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Conversation identifier
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Messages in chronological order
+        created_at:
+          type: string
+          format: date-time
+          description: Conversation start time
+        updated_at:
+          type: string
+          format: date-time
+          description: Last activity time
+
+    Message:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Message identifier
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+          description: Message sender role
+        content:
+          type: string
+          description: Message content
+        created_at:
+          type: string
+          format: date-time
+          description: Message timestamp
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
