@@ -63,7 +63,7 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
     const handlePopState = () => {
       const path = window.location.pathname;
       if (path.startsWith('/c/')) {
-        const id = path.split('/c/')[1];
+        const id = path.split('/c/')[1] || null;
         setActiveConversationId(id);
         setPendingConversationId(null);
       } else {
