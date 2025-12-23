@@ -230,8 +230,8 @@ function Start-PortForwarding {
     # Kill any existing port-forward processes on our ports
     $existingProcesses = Get-NetTCPConnection -LocalPort 8080, 3000 -ErrorAction SilentlyContinue | 
         Select-Object -ExpandProperty OwningProcess -Unique
-    foreach ($pid in $existingProcesses) {
-        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    foreach ($procId in $existingProcesses) {
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     }
 
     # Start port forwarding for backend (8080 -> backend service)
