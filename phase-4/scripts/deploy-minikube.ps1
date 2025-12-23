@@ -135,7 +135,7 @@ function Build-Images {
 
     Write-Info "Building frontend Docker image..."
     docker build `
-        --build-arg NEXT_PUBLIC_API_URL="http://localhost:8080" `
+        --build-arg NEXT_PUBLIC_API_URL="http://localhost:5000" `
         -t taskai-frontend:latest `
         "$ProjectDir\frontend"
     Write-Success "Frontend image built"
@@ -191,7 +191,7 @@ function Deploy-Helm {
         "--namespace", $Namespace,
         "--create-namespace",
         "--set", "secrets.openaiApiKey=$OpenAIKey",
-        "--set", "frontend.env.NEXT_PUBLIC_API_URL=http://localhost:8080",
+        "--set", "frontend.env.NEXT_PUBLIC_API_URL=http://localhost:5000",
         "--wait",
         "--timeout", "10m"
     )
@@ -228,22 +228,22 @@ function Start-PortForwarding {
     Write-Info "Setting up port forwarding for localhost access..."
 
     # Kill any existing port-forward processes on our ports
-    $existingProcesses = Get-NetTCPConnection -LocalPort 8080, 3000 -ErrorAction SilentlyContinue | 
+    $existingProcesses = Get-NetTCPConnection -LocalPort 5000, 4000 -ErrorAction SilentlyContinue | 
         Select-Object -ExpandProperty OwningProcess -Unique
     foreach ($procId in $existingProcesses) {
         Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     }
 
-    # Start port forwarding for backend (8080 -> backend service)
+    # Start port forwarding for backend (5000 -> backend service)
     $backendJob = Start-Job -ScriptBlock {
         param($ns)
-        kubectl port-forward svc/taskai-backend 8080:8000 -n $ns 2>&1
+        kubectl port-forward svc/taskai-backend 5000:8000 -n $ns 2>&1
     } -ArgumentList $Namespace
 
-    # Start port forwarding for frontend (3000 -> frontend service)
+    # Start port forwarding for frontend (4000 -> frontend service)
     $frontendJob = Start-Job -ScriptBlock {
         param($ns)
-        kubectl port-forward svc/taskai-frontend 3000:3000 -n $ns 2>&1
+        kubectl port-forward svc/taskai-frontend 4000:3000 -n $ns 2>&1
     } -ArgumentList $Namespace
 
     # Wait a moment for port forwarding to establish
@@ -272,13 +272,13 @@ function Show-AccessInfo {
     Write-Host "===========================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Access URLs (via port-forwarding):" -ForegroundColor White
-    Write-Host "  Frontend:     " -NoNewline; Write-Host "http://localhost:3000" -ForegroundColor Cyan
-    Write-Host "  Backend API:  " -NoNewline; Write-Host "http://localhost:8080" -ForegroundColor Cyan
-    Write-Host "  Swagger Docs: " -NoNewline; Write-Host "http://localhost:8080/docs" -ForegroundColor Cyan
+    Write-Host "  Frontend:     " -NoNewline; Write-Host "http://localhost:4000" -ForegroundColor Cyan
+    Write-Host "  Backend API:  " -NoNewline; Write-Host "http://localhost:5000" -ForegroundColor Cyan
+    Write-Host "  Swagger Docs: " -NoNewline; Write-Host "http://localhost:5000/docs" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Port Forwarding Status:" -ForegroundColor Yellow
-    Write-Host "  Backend Job ID:  $script:BackendJobId (port 8080 -> backend:8000)"
-    Write-Host "  Frontend Job ID: $script:FrontendJobId (port 3000 -> frontend:3000)"
+    Write-Host "  Backend Job ID:  $script:BackendJobId (port 5000 -> backend:8000)"
+    Write-Host "  Frontend Job ID: $script:FrontendJobId (port 4000 -> frontend:3000)"
     Write-Host ""
     Write-Host "Useful commands:" -ForegroundColor White
     Write-Host "  View pods:         kubectl get pods -n $Namespace"
