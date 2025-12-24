@@ -115,20 +115,12 @@ check_pvc() {
 check_api_health() {
     log_info "Checking API health..."
 
-    local backend_url=""
-
-    # Try to get Minikube IP first
-    if command -v minikube >/dev/null 2>&1; then
-        local minikube_ip=$(minikube ip 2>/dev/null)
-        backend_url="http://${minikube_ip}:30800"
-    else
-        backend_url="http://localhost:30800"
-    fi
+    local backend_url="http://localhost:8080"
 
     if curl -s --connect-timeout 5 "${backend_url}/docs" >/dev/null 2>&1; then
         log_success "Backend API is accessible at ${backend_url}"
     else
-        log_warning "Cannot reach backend at ${backend_url}. Run 'minikube tunnel' if using localhost."
+        log_warning "Cannot reach backend at ${backend_url}. Make sure port-forwarding is running."
     fi
 }
 

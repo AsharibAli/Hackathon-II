@@ -138,7 +138,7 @@ build_images() {
 
     log_info "Building frontend Docker image..."
     docker build \
-        --build-arg NEXT_PUBLIC_API_URL="http://localhost:30800" \
+        --build-arg NEXT_PUBLIC_API_URL="http://localhost:8080" \
         -t taskai-frontend:latest \
         "$PROJECT_DIR/frontend"
     log_success "Frontend image built"
@@ -179,7 +179,7 @@ deploy_helm() {
     helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
         --namespace "$NAMESPACE" \
         --set secrets.openaiApiKey="$OPENAI_API_KEY" \
-        --set frontend.env.NEXT_PUBLIC_API_URL="http://localhost:30800" \
+        --set frontend.env.NEXT_PUBLIC_API_URL="http://localhost:8080" \
         --wait \
         --timeout 10m
 
@@ -198,6 +198,37 @@ wait_for_pods() {
     log_success "All pods are ready"
 }
 
+# Start port forwarding for services
+start_port_forwarding() {
+    log_info "Setting up port forwarding for localhost access..."
+
+    # Kill any existing port-forward processes on our ports
+    for port in 8080 3000; do
+        local pids=$(lsof -ti :$port 2>/dev/null)
+        if [ -n "$pids" ]; then
+            echo "$pids" | xargs kill -9 2>/dev/null || true
+        fi
+    done
+
+    # Start port forwarding for backend (8080 -> backend service port 8000)
+    kubectl port-forward svc/taskai-backend 8080:8000 -n "$NAMESPACE" &>/dev/null &
+    BACKEND_PID=$!
+
+    # Start port forwarding for frontend (3000 -> frontend service port 3000)
+    kubectl port-forward svc/taskai-frontend 3000:3000 -n "$NAMESPACE" &>/dev/null &
+    FRONTEND_PID=$!
+
+    # Wait a moment for port forwarding to establish
+    sleep 3
+
+    # Verify port forwarding is working
+    if kill -0 $BACKEND_PID 2>/dev/null && kill -0 $FRONTEND_PID 2>/dev/null; then
+        log_success "Port forwarding established successfully"
+    else
+        log_warning "Port forwarding may not be fully established. Check manually."
+    fi
+}
+
 # Display access information
 show_access_info() {
     echo ""
@@ -205,24 +236,31 @@ show_access_info() {
     echo -e "${GREEN}  TaskAI Deployment Successful!${NC}"
     echo "==========================================================="
     echo ""
-    echo "Access URLs:"
-    echo -e "  Frontend: ${BLUE}http://$(minikube ip):30300${NC}"
-    echo -e "  Backend API: ${BLUE}http://$(minikube ip):30800${NC}"
-    echo -e "  Swagger Docs: ${BLUE}http://$(minikube ip):30800/docs${NC}"
+    echo -e "Access URLs (via port-forwarding):"
+    echo -e "  Frontend:     ${BLUE}http://localhost:3000${NC}"
+    echo -e "  Backend API:  ${BLUE}http://localhost:8080${NC}"
+    echo -e "  Swagger Docs: ${BLUE}http://localhost:8080/docs${NC}"
     echo ""
-    echo "Alternative (localhost access via minikube tunnel):"
-    echo -e "  Run: ${YELLOW}minikube tunnel${NC} in a separate terminal"
-    echo -e "  Frontend: ${BLUE}http://localhost:30300${NC}"
-    echo -e "  Backend: ${BLUE}http://localhost:30800${NC}"
+    echo -e "${YELLOW}Port Forwarding Status:${NC}"
+    echo "  Backend PID:  $BACKEND_PID (port 8080 -> backend:8000)"
+    echo "  Frontend PID: $FRONTEND_PID (port 3000 -> frontend:3000)"
     echo ""
     echo "Useful commands:"
-    echo "  View pods:     kubectl get pods -n $NAMESPACE"
-    echo "  View logs:     kubectl logs -f deploy/taskai-backend -n $NAMESPACE"
-    echo "  Open dashboard: minikube dashboard"
+    echo "  View pods:          kubectl get pods -n $NAMESPACE"
+    echo "  View backend logs:  kubectl logs -f deploy/taskai-backend -n $NAMESPACE"
+    echo "  View frontend logs: kubectl logs -f deploy/taskai-frontend -n $NAMESPACE"
+    echo "  Open dashboard:     minikube dashboard"
     echo ""
-    echo "To uninstall:"
+    echo -e "${YELLOW}To stop port forwarding:${NC}"
+    echo "  kill $BACKEND_PID $FRONTEND_PID"
+    echo ""
+    echo -e "${YELLOW}To uninstall:${NC}"
     echo "  helm uninstall $RELEASE_NAME -n $NAMESPACE"
     echo "  kubectl delete namespace $NAMESPACE"
+    echo ""
+    echo "==========================================================="
+    echo -e "${GREEN}  Services are now accessible on localhost!${NC}"
+    echo "==========================================================="
     echo ""
 }
 
@@ -240,6 +278,7 @@ main() {
     build_images
     deploy_helm
     wait_for_pods
+    start_port_forwarding
     show_access_info
 }
 

@@ -110,13 +110,7 @@ function Test-Secrets {
 function Test-APIHealth {
     Write-Info "Checking API health..."
 
-    $backendUrl = "http://localhost:30800"
-
-    # Try to get Minikube IP
-    $minikubeIp = minikube ip 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        $backendUrl = "http://${minikubeIp}:30800"
-    }
+    $backendUrl = "http://localhost:8080"
 
     try {
         $response = Invoke-WebRequest -Uri "$backendUrl/docs" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
@@ -124,7 +118,7 @@ function Test-APIHealth {
             Write-Pass "Backend API is accessible at $backendUrl"
         }
     } catch {
-        Write-Warning "Cannot reach backend at $backendUrl. Run 'minikube tunnel' if using localhost."
+        Write-Warning "Cannot reach backend at $backendUrl. Make sure port-forwarding is running."
     }
 }
 

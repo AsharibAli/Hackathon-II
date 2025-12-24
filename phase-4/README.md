@@ -287,13 +287,20 @@ See `.specify/memory/constitution.md` for complete governance rules.
 
 ### Quick Deploy
 
+The deployment scripts automatically set up port-forwarding for localhost access.
+
 ```bash
 # Linux/Mac
-./scripts/deploy-minikube.sh --openai-key "sk-your-key"
+./scripts/deploy-minikube.sh
 
 # Windows PowerShell
-.\scripts\deploy-minikube.ps1 -OpenAIKey "sk-your-key"
+.\scripts\deploy-minikube.ps1
 ```
+
+**After deployment, services are accessible at:**
+- Frontend: http://localhost:3000 (Linux/Mac) or http://localhost:4000 (Windows)
+- Backend API: http://localhost:8080 (Linux/Mac) or http://localhost:5000 (Windows)
+- Swagger Docs: http://localhost:8080/docs or http://localhost:5000/docs
 
 ### Manual Deployment
 
@@ -307,7 +314,7 @@ minikube docker-env --shell powershell | Invoke-Expression  # Windows
 
 # Build images
 docker build -t taskai-backend:latest ./backend
-docker build --build-arg NEXT_PUBLIC_API_URL="http://localhost:30800" \
+docker build --build-arg NEXT_PUBLIC_API_URL="http://localhost:8080" \
   -t taskai-frontend:latest ./frontend
 
 # Deploy with Helm
@@ -322,15 +329,15 @@ kubectl get pods -n taskai
 
 ### Access URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://\<minikube-ip\>:30300 |
-| Backend API | http://\<minikube-ip\>:30800 |
-| Swagger Docs | http://\<minikube-ip\>:30800/docs |
+With port-forwarding (automatic when using deploy scripts):
 
-Get Minikube IP: `minikube ip`
+| Service | URL (Linux/Mac) | URL (Windows) |
+|---------|-----------------|---------------|
+| Frontend | http://localhost:3000 | http://localhost:4000 |
+| Backend API | http://localhost:8080 | http://localhost:5000 |
+| Swagger Docs | http://localhost:8080/docs | http://localhost:5000/docs |
 
-Or use `minikube tunnel` for localhost access.
+> **Note:** Port-forwarding runs as background processes/jobs. See script output for commands to stop them.
 
 ### Helm Values
 
@@ -343,11 +350,11 @@ secrets:
 
 frontend:
   service:
-    nodePort: 30300
+    port: 3000  # Accessed via port-forwarding
 
 backend:
   service:
-    nodePort: 30800
+    port: 8000  # Accessed via port-forwarding (localhost:8080 -> service:8000)
   env:
     OPENAI_MODEL: "gpt-4.1-2025-04-14"
 ```
