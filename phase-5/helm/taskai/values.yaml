@@ -1,0 +1,112 @@
+# ==============================================
+# TaskAI Helm Chart Values
+# ==============================================
+
+# Global settings
+global:
+  namespace: taskai
+
+# Frontend Configuration
+frontend:
+  replicaCount: 1
+  image:
+    repository: taskai-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    NEXT_PUBLIC_API_URL: "http://localhost:30800"
+
+# Backend Configuration
+backend:
+  replicaCount: 1
+  image:
+    repository: taskai-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30800
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  env:
+    JWT_ALGORITHM: "HS256"
+    JWT_EXPIRATION_HOURS: "24"
+    OPENAI_MODEL: "gpt-4.1-2025-04-14"
+    DEBUG: "false"
+    # Set this for external database (Neon, etc.)
+    # DATABASE_URL: ""
+
+# External Database Configuration (e.g., Neon PostgreSQL)
+# To use external DB: set externalDatabase.enabled=true and postgresql.enabled=false
+externalDatabase:
+  enabled: false
+  # Full connection URL for external database
+  url: ""
+
+# PostgreSQL Configuration (local)
+postgresql:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5432
+  auth:
+    username: taskai
+    password: taskai_secret
+    database: taskai
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+# Secrets - MUST be overridden in production!
+# Use: helm install taskai ./helm/taskai --set secrets.jwtSecret=xxx --set secrets.openaiApiKey=xxx
+secrets:
+  jwtSecret: "CHANGE_ME_use_32_char_min_secret"
+  openaiApiKey: "CHANGE_ME_your_openai_api_key"
+  resendApiKey: "CHANGE_ME_your_resend_api_key"
+  googleClientId: "CHANGE_ME_your_google_client_id"
+
+# Ingress Configuration (optional)
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: taskai.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: backend
+  tls: []

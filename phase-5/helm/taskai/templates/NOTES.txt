@@ -1,0 +1,49 @@
+=========================================================
+  TaskAI - Advanced Todo Application with CUI & GUI
+=========================================================
+
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named: {{ .Release.Name }}
+Namespace: {{ .Values.global.namespace }}
+
+=== Access the Application ===
+
+Frontend (Web UI):
+  URL: http://localhost:{{ .Values.frontend.service.nodePort }}
+
+Backend API:
+  URL: http://localhost:{{ .Values.backend.service.nodePort }}
+  Swagger Docs: http://localhost:{{ .Values.backend.service.nodePort }}/docs
+
+=== Verify Deployment ===
+
+Check all pods are running:
+  kubectl get pods -n {{ .Values.global.namespace }}
+
+Check services:
+  kubectl get svc -n {{ .Values.global.namespace }}
+
+View backend logs:
+  kubectl logs -f deployment/{{ include "taskai.fullname" . }}-backend -n {{ .Values.global.namespace }}
+
+View frontend logs:
+  kubectl logs -f deployment/{{ include "taskai.fullname" . }}-frontend -n {{ .Values.global.namespace }}
+
+=== Important Notes ===
+
+1. Make sure you have set the OPENAI_API_KEY in values.yaml or via --set:
+   helm upgrade {{ .Release.Name }} . --set secrets.openaiApiKey=sk-your-key
+
+2. For production, update the following:
+   - secrets.jwtSecret (generate: openssl rand -hex 32)
+   - backend.env.DEBUG=false
+   - postgresql.auth.password
+
+=== Uninstall ===
+
+To uninstall the chart:
+  helm uninstall {{ .Release.Name }} -n {{ .Values.global.namespace }}
+
+To also delete the namespace:
+  kubectl delete namespace {{ .Values.global.namespace }}

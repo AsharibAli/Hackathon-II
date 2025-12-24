@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taskai.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "taskai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "taskai.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "taskai.backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if and .Values.postgresql.enabled (not .Values.externalDatabase.enabled) }}
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ include "taskai.fullname" . }}-postgresql 5432; do echo waiting for postgres; sleep 2; done;']
+      {{- end }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              {{- if .Values.externalDatabase.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: DATABASE_URL
+              {{- else }}
+              value: "postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ include "taskai.fullname" . }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+              {{- end }}
+            {{- if not .Values.externalDatabase.enabled }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: POSTGRES_PASSWORD
+            {{- end }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: JWT_SECRET
+            - name: JWT_ALGORITHM
+              value: {{ .Values.backend.env.JWT_ALGORITHM | quote }}
+            - name: JWT_EXPIRATION_HOURS
+              value: {{ .Values.backend.env.JWT_EXPIRATION_HOURS | quote }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+            - name: OPENAI_MODEL
+              value: {{ .Values.backend.env.OPENAI_MODEL | quote }}
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskai.fullname" . }}-secrets
+                  key: RESEND_API_KEY
+            - name: CORS_ORIGINS
+              value: "http://localhost:{{ .Values.frontend.service.nodePort }}"
+            - name: FRONTEND_URL
+              value: "http://localhost:{{ .Values.frontend.service.nodePort }}"
+            - name: DEBUG
+              value: {{ .Values.backend.env.DEBUG | quote }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5

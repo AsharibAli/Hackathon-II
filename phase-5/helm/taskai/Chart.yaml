@@ -1,0 +1,16 @@
+apiVersion: v2
+name: taskai
+description: Advanced Todo Application with CUI & GUI - Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - todo
+  - ai
+  - chatbot
+  - task-management
+maintainers:
+  - name: Asharib Ali
+home: https://github.com/asharibali/hackathon-ii
+sources:
+  - https://github.com/asharibali/hackathon-ii
