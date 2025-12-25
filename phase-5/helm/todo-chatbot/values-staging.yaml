@@ -1,0 +1,187 @@
+# [Task]: T112
+# [Spec]: F-010 (US12)
+# [Description]: Staging environment values for cloud deployment (AKS/GKE/OKE)
+
+# Global settings for staging
+global:
+  imageRegistry: ""  # Set to your container registry, e.g., "ghcr.io/your-org"
+  imagePullSecrets:
+    - name: regcred
+  namespace: todo-app-staging
+
+# Backend service configuration
+backend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-chatbot/backend
+    pullPolicy: Always
+    tag: "staging"
+  service:
+    type: LoadBalancer  # Cloud LoadBalancer
+    port: 8000
+    annotations:
+      # Azure AKS
+      # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      # GKE
+      # cloud.google.com/load-balancer-type: "Internal"
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: info
+  config:
+    databaseUrl: ""  # Set via secret
+    secretKey: ""    # Set via secret
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+# Frontend service configuration
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-chatbot/frontend
+    pullPolicy: Always
+    tag: "staging"
+  service:
+    type: LoadBalancer  # Cloud LoadBalancer
+    port: 3000
+    annotations: {}
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    nodeEnv: "staging"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Notification service configuration
+notification-service:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-chatbot/notification-service
+    pullPolicy: Always
+    tag: "staging"
+  service:
+    type: ClusterIP
+    port: 8001
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+    logLevel: info
+  config:
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Recurring service configuration
+recurring-service:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-chatbot/recurring-service
+    pullPolicy: Always
+    tag: "staging"
+  service:
+    type: ClusterIP
+    port: 8002
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+    logLevel: info
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# PostgreSQL - using managed database in cloud
+postgresql:
+  enabled: false
+
+# External database configuration
+externalDatabase:
+  enabled: true
+  # Set these via Kubernetes secrets
+  host: ""
+  port: 5432
+  database: "todo_chatbot_staging"
+  existingSecret: "database-credentials"
+  existingSecretPasswordKey: "password"
+  existingSecretUsernameKey: "username"
+
+# Dapr configuration - using Redpanda Cloud
+dapr:
+  enabled: true
+  components:
+    pubsub:
+      name: kafka-pubsub
+      type: pubsub.kafka
+      # Redpanda Cloud configuration
+      metadata:
+        brokers: ""  # Set via secret
+        authType: "password"
+        saslUsername: ""  # Set via secret
+        saslPassword: ""  # Set via secret
+    statestore:
+      name: statestore
+      type: state.postgresql

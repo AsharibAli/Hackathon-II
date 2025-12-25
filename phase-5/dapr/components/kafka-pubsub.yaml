@@ -1,0 +1,22 @@
+# [Task]: T004
+# [Spec]: F-008 (R-008.1)
+# [Description]: Dapr Kafka pub/sub component configuration
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: todo-app
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    - name: brokers
+      value: "kafka-cluster-kafka-bootstrap.kafka:9092"
+    - name: consumerGroup
+      value: "todo-services"
+    - name: authType
+      value: "none"
+    - name: initialOffset
+      value: "oldest"
+    - name: maxMessageBytes
+      value: "1048576"

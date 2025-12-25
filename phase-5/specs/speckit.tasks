@@ -1,0 +1,114 @@
+# Speckit Tasks - Phase 5 Advanced Cloud Deployment
+
+This file is a symbolic link/reference to the authoritative task breakdown at:
+`specs/004-phase5-cloud-deployment/tasks.md`
+
+For the complete task list including dependencies and execution order,
+see that file.
+
+## Quick Reference
+
+**Feature**: Phase 5 Advanced Cloud Deployment
+**Branch**: `004-phase5-cloud-deployment`
+**Generated**: 2025-12-25
+**Status**: Complete
+
+### Task Summary
+
+| Phase | User Story | Task Count | Parallelizable |
+|-------|-----------|------------|----------------|
+| 1 | Setup | 10 | 8 |
+| 2 | Foundational | 19 | 12 |
+| 3 | US1 Priorities | 7 | 0 |
+| 4 | US2 Tags | 10 | 0 |
+| 5 | US3 Due Dates | 8 | 0 |
+| 6 | US4 Search | 6 | 0 |
+| 7 | US5 Filter/Sort | 7 | 0 |
+| 8 | US6 Reminders | 8 | 0 |
+| 9 | US7 Recurring | 9 | 0 |
+| 10 | US8 Events | 6 | 0 |
+| 11 | US9 Notification Svc | 5 | 0 |
+| 12 | US10 Recurring Svc | 5 | 0 |
+| 13 | US11 Minikube | 11 | 0 |
+| 14 | US12 Cloud | 6 | 0 |
+| 15 | US13 CI/CD | 7 | 0 |
+| 16 | Polish | 9 | 4 |
+| **Total** | | **133** | **24** |
+
+### User Story Distribution
+
+| Story ID | Description | Priority | Tasks |
+|----------|-------------|----------|-------|
+| US1 | Task Priorities | P1 | 7 |
+| US2 | Task Tags | P1 | 10 |
+| US3 | Due Dates | P1 | 8 |
+| US4 | Search Tasks | P2 | 6 |
+| US5 | Filter & Sort | P2 | 7 |
+| US6 | Reminders | P2 | 8 |
+| US7 | Recurring Tasks | P3 | 9 |
+| US8 | Event Infrastructure | P1 | 6 |
+| US9 | Notification Service | P2 | 5 |
+| US10 | Recurring Service | P3 | 5 |
+| US11 | Minikube Deployment | P1 | 11 |
+| US12 | Cloud Deployment | P3 | 6 |
+| US13 | CI/CD Pipeline | P3 | 7 |
+
+### MVP Scope (~65 tasks)
+
+**Phases**: 1-5, 10, 13 (Setup + Foundational + US1-3 + US8 + US11)
+
+1. Phase 1: Setup (10 tasks)
+2. Phase 2: Foundational (19 tasks) - BLOCKS ALL USER STORIES
+3. Phase 3: US1 Priorities (7 tasks)
+4. Phase 4: US2 Tags (10 tasks)
+5. Phase 5: US3 Due Dates (8 tasks)
+6. Phase 10: US8 Events (6 tasks)
+7. Phase 13: US11 Minikube (11 tasks)
+
+### Dependencies
+
+```
+Setup (P1) ──▶ Foundational (P2) ──▶ User Stories (P3-P15) ──▶ Polish (P16)
+                    │
+                    ▼
+        ┌───────────┼───────────┬───────────┐
+        ▼           ▼           ▼           ▼
+       US1         US2         US3         US8
+    Priorities    Tags     Due Dates    Events
+        │           │           │           │
+        └───────────┴─────┬─────┴───────────┘
+                          ▼
+                    US4, US5, US6, US7
+                          │
+                          ▼
+                    US9, US10
+                          │
+                          ▼
+                    US11 (Minikube)
+                          │
+                    ┌─────┴─────┐
+                    ▼           ▼
+                  US12        US13
+                 Cloud       CI/CD
+```
+
+### Independent Test Criteria
+
+Each user story has checkpoint validation:
+- **US1**: Create tasks with different priorities, verify visual indicators and filtering
+- **US2**: Add tags to tasks, verify chips display and filtering
+- **US3**: Set due dates using natural language, verify overdue styling
+- **US4**: Create tasks with specific keywords, verify search returns matches
+- **US5**: Apply combined filters, verify correct results and sort order
+- **US6**: Set reminder, verify event published when reminder time arrives
+- **US7**: Complete recurring task, verify new task created for next period
+- **US8**: Create/update/complete/delete task, verify events in Kafka topics
+- **US9**: Publish reminder event, verify service logs notification details
+- **US10**: Publish task.completed for recurring task, verify new task created
+- **US11**: Run deploy script, verify all pods running and healthy
+- **US12**: Deploy to cloud cluster, verify all services accessible
+- **US13**: Push to main, verify pipeline builds and deploys to staging
+
+---
+
+Full task breakdown: `specs/004-phase5-cloud-deployment/tasks.md`

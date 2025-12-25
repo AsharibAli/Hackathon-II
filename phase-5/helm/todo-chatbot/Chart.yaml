@@ -1,0 +1,35 @@
+# [Task]: T105
+# [Spec]: F-009 (US11)
+# [Description]: Parent Helm chart (umbrella) for TaskAI
+apiVersion: v2
+name: todo-chatbot
+description: TaskAI - Full Stack Application with Microservices
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - todo
+  - chatbot
+  - microservices
+  - dapr
+  - kafka
+maintainers:
+  - name: TaskAI Team
+
+dependencies:
+  - name: backend
+    version: 1.0.0
+    repository: "file://../charts/backend"
+    condition: backend.enabled
+  - name: frontend
+    version: 1.0.0
+    repository: "file://../charts/frontend"
+    condition: frontend.enabled
+  - name: notification-service
+    version: 1.0.0
+    repository: "file://../charts/notification-service"
+    condition: notification-service.enabled
+  - name: recurring-service
+    version: 1.0.0
+    repository: "file://../charts/recurring-service"
+    condition: recurring-service.enabled

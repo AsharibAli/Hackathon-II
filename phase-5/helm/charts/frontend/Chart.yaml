@@ -1,0 +1,16 @@
+# [Task]: T102
+# [Spec]: F-009 (US11)
+# [Description]: Helm chart for frontend service
+apiVersion: v2
+name: frontend
+description: TaskAI Frontend Next.js Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - nextjs
+  - frontend
+  - react
+  - todo
+maintainers:
+  - name: TaskAI Team

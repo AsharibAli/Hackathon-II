@@ -1,0 +1,591 @@
+openapi: 3.1.0
+info:
+  title: TaskAI API - Phase 5
+  description: |
+    Backend API for TaskAI with priorities, tags, due dates, reminders, and recurring tasks.
+    All endpoints require JWT authentication except /auth/* and /health endpoints.
+  version: 2.0.0
+  contact:
+    name: TaskAI Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: http://todo-backend:8000
+    description: Kubernetes internal
+  - url: http://localhost:3500/v1.0/invoke/todo-backend/method
+    description: Via Dapr sidecar
+
+tags:
+  - name: Tasks
+    description: Task CRUD operations
+  - name: Chat
+    description: Conversational interface
+  - name: Health
+    description: Service health endpoints
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns 200 if service is alive
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 200 if service is ready to accept traffic
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service not ready
+
+  /api/chat:
+    post:
+      tags: [Chat]
+      summary: Send chat message
+      description: Process natural language message and execute task operations
+      operationId: chat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      description: Get all tasks for authenticated user with optional filters
+      operationId: listTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/TagFilter'
+        - $ref: '#/components/parameters/OverdueFilter'
+        - $ref: '#/components/parameters/SortBy'
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tasks]
+      summary: Create task
+      description: Create a new task
+      operationId: createTask
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/search:
+    get:
+      tags: [Tasks]
+      summary: Search tasks
+      description: Search tasks by keyword in title and description
+      operationId: searchTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (case-insensitive)
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskSearchResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/{taskId}:
+    get:
+      tags: [Tasks]
+      summary: Get task
+      description: Get a specific task by ID
+      operationId: getTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Tasks]
+      summary: Update task
+      description: Update an existing task
+      operationId: updateTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete task
+      description: Delete a task
+      operationId: deleteTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/{taskId}/complete:
+    put:
+      tags: [Tasks]
+      summary: Complete task
+      description: Mark a task as completed. Publishes task.completed event.
+      operationId: completeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/{taskId}/uncomplete:
+    put:
+      tags: [Tasks]
+      summary: Uncomplete task
+      description: Mark a completed task as pending
+      operationId: uncompleteTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task uncompleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/{taskId}/tags:
+    post:
+      tags: [Tasks]
+      summary: Add tag to task
+      description: Add a tag to a task (creates tag if not exists)
+      operationId: addTagToTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+      responses:
+        '200':
+          description: Tag added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags: [Tasks]
+      summary: Remove tag from task
+      description: Remove a tag from a task
+      operationId: removeTagFromTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: tag
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Task ID
+      schema:
+        type: integer
+
+    PriorityFilter:
+      name: priority
+      in: query
+      description: Filter by priority
+      schema:
+        type: string
+        enum: [low, medium, high]
+
+    StatusFilter:
+      name: status
+      in: query
+      description: Filter by completion status
+      schema:
+        type: string
+        enum: [pending, completed, all]
+        default: all
+
+    TagFilter:
+      name: tag
+      in: query
+      description: Filter by tag name
+      schema:
+        type: string
+
+    OverdueFilter:
+      name: overdue
+      in: query
+      description: Filter for overdue tasks only
+      schema:
+        type: boolean
+        default: false
+
+    SortBy:
+      name: sort_by
+      in: query
+      description: Sort field
+      schema:
+        type: string
+        enum: [created_at, due_date, priority, title]
+        default: created_at
+
+    SortOrder:
+      name: sort_order
+      in: query
+      description: Sort direction
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: User's natural language message
+          example: "Create a task called Buy groceries with high priority"
+        conversation_id:
+          type: string
+          description: Optional conversation ID for context
+          format: uuid
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: AI assistant's response
+        tasks:
+          type: array
+          description: Tasks affected by the command
+          items:
+            $ref: '#/components/schemas/Task'
+        action:
+          type: string
+          description: Action performed
+          enum: [created, updated, deleted, listed, searched, none]
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_completed:
+          type: boolean
+        priority:
+          type: string
+          enum: [low, medium, high]
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        remind_at:
+          type: string
+          format: date-time
+          nullable: true
+        recurrence:
+          type: string
+          enum: [none, daily, weekly, monthly]
+        parent_task_id:
+          type: integer
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 datetime or natural language
+        remind_at:
+          type: string
+          format: date-time
+          nullable: true
+        recurrence:
+          type: string
+          enum: [none, daily, weekly, monthly]
+          default: none
+        tags:
+          type: array
+          items:
+            type: string
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [low, medium, high]
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        remind_at:
+          type: string
+          format: date-time
+          nullable: true
+        recurrence:
+          type: string
+          enum: [none, daily, weekly, monthly]
+
+    TaskSearchResult:
+      allOf:
+        - $ref: '#/components/schemas/Task'
+        - type: object
+          properties:
+            match_highlights:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Title with matching text highlighted
+                description:
+                  type: string
+                  description: Description with matching text highlighted
+
+    TagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 50
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+        code:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "Not authenticated"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "Task not found"
+            code: "NOT_FOUND"
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "Validation error"
+            code: "BAD_REQUEST"

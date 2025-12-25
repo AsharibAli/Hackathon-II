@@ -1,0 +1,132 @@
+# [Task]: T106
+# [Spec]: F-009 (US11)
+# [Description]: Default values for TaskAI umbrella chart
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  namespace: todo-app
+
+# Backend service configuration
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/backend
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+  config:
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Frontend service configuration
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/frontend
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    nodeEnv: "production"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Notification service configuration
+notification-service:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/notification-service
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8001
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+  config:
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# Recurring service configuration
+recurring-service:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/recurring-service
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8002
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    pubsubName: "kafka-pubsub"
+    logLevel: "INFO"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# PostgreSQL configuration (if using in-cluster database)
+postgresql:
+  enabled: false
+  auth:
+    postgresPassword: ""
+    database: todo_chatbot
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+# Dapr configuration
+dapr:
+  enabled: true
+  components:
+    pubsub:
+      name: kafka-pubsub
+      type: pubsub.kafka
+    statestore:
+      name: statestore
+      type: state.postgresql

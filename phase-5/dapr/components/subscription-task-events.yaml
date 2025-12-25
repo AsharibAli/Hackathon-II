@@ -1,0 +1,15 @@
+# [Task]: T007
+# [Spec]: F-010 (R-010.2)
+# [Description]: Dapr subscription for task-events topic
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: task-events-subscription
+  namespace: todo-app
+spec:
+  pubsubname: kafka-pubsub
+  topic: task-events
+  routes:
+    default: /api/events/task
+  scopes:
+    - recurring-service

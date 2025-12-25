@@ -1,0 +1,16 @@
+# [Task]: T101
+# [Spec]: F-009 (US11)
+# [Description]: Helm chart for backend service
+apiVersion: v2
+name: backend
+description: TaskAI Backend API Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastapi
+  - backend
+  - api
+  - todo
+maintainers:
+  - name: TaskAI Team
