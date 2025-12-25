@@ -1,0 +1,18 @@
+# [Task]: T104
+# [Spec]: F-009 (US11)
+# [Description]: Kubernetes Service for recurring-service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "recurring-service.fullname" . }}
+  labels:
+    {{- include "recurring-service.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "recurring-service.selectorLabels" . | nindent 4 }}

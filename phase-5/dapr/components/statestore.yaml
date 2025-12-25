@@ -1,0 +1,18 @@
+# [Task]: T005
+# [Spec]: F-008 (R-008.2)
+# [Description]: Dapr PostgreSQL state store component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: todo-app
+spec:
+  type: state.postgresql
+  version: v1
+  metadata:
+    - name: connectionString
+      secretKeyRef:
+        name: db-credentials
+        key: connection-string
+    - name: tableName
+      value: "dapr_state"

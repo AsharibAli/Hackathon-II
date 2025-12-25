@@ -1,0 +1,336 @@
+# [Task]: T119, T120, T121, T122, T123
+# [Spec]: F-011 (US13)
+# [Description]: GitHub Actions workflow for deploying to staging and production
+
+name: Deploy to Kubernetes
+
+on:
+  # Deploy to staging on push to main
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'notification-service/**'
+      - 'recurring-service/**'
+      - '.github/workflows/deploy.yaml'
+
+  # Deploy to production on version tag
+  push:
+    tags:
+      - 'v*.*.*'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy (default: latest for staging, tag version for production)'
+        required: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/todo-chatbot
+  HELM_CHART_PATH: ./helm/todo-chatbot
+
+jobs:
+  # [Task]: T120 - Staging deployment job
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure Kubernetes context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.STAGING_KUBECONFIG }}
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+
+      # [Task]: T122 - Helm upgrade with --atomic flag
+      - name: Deploy to Staging
+        run: |
+          helm upgrade --install todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app-staging \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-staging.yaml \
+            --set backend.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set frontend.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set notification-service.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set recurring-service.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set global.imageRegistry=${{ env.REGISTRY }}/${{ github.repository_owner }} \
+            --atomic \
+            --timeout 10m \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/todo-chatbot-backend -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-frontend -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-notification-service -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-recurring-service -n todo-app-staging --timeout=300s
+
+      # [Task]: T123 - Slack/Discord notification
+      - name: Notify Slack on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Staging Deployment Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Staging Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Image Tag:*\n${{ steps.image-tag.outputs.tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Staging Deployment Failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ Staging Deployment Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+  # [Task]: T121 - Production deployment job
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure Kubernetes context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.PRODUCTION_KUBECONFIG }}
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Extract version from tag (e.g., v1.0.0 -> 1.0.0)
+            echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+
+      # [Task]: T122 - Helm upgrade with --atomic flag
+      - name: Deploy to Production
+        run: |
+          helm upgrade --install todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app-production \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-production.yaml \
+            --set backend.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set frontend.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set notification-service.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set recurring-service.image.tag=${{ steps.image-tag.outputs.tag }} \
+            --set global.imageRegistry=${{ env.REGISTRY }}/${{ github.repository_owner }} \
+            --atomic \
+            --timeout 15m \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/todo-chatbot-backend -n todo-app-production --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-frontend -n todo-app-production --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-notification-service -n todo-app-production --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-recurring-service -n todo-app-production --timeout=300s
+
+      # [Task]: T123 - Slack/Discord notification
+      - name: Notify Slack on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production Deployment Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚀 Production Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n${{ steps.image-tag.outputs.tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production Deployment Failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🔥 Production Deployment Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true

@@ -1,0 +1,17 @@
+# [Task]: T104
+# [Spec]: F-009 (US11)
+# [Description]: Helm chart for recurring-service
+apiVersion: v2
+name: recurring-service
+description: TaskAI Recurring Service - handles recurring task creation
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastapi
+  - recurring
+  - tasks
+  - dapr
+  - kafka
+maintainers:
+  - name: TaskAI Team

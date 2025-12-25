@@ -19,6 +19,11 @@ dependencies = [
     "openai-agents>=0.1.0",
     "mcp>=1.0.0",
     "resend>=2.19.0",
+    # Phase 5 additions
+    "httpx>=0.26.0",  # T010: Dapr HTTP calls
+    "dateparser>=1.2.0",  # T009: Natural language date parsing
+    "structlog>=24.1.0",  # R-010: Structured JSON logging
+    "apscheduler>=3.10.0",  # R-006: Background reminder scheduling
 ]
 
 [project.optional-dependencies]

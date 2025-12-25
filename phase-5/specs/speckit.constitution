@@ -1,0 +1,58 @@
+# Speckit Constitution - Phase 5 Advanced Cloud Deployment
+
+This file is a symbolic link/reference to the authoritative constitution at:
+`.specify/memory/constitution.md`
+
+For the complete constitution including all principles, constraints, and governance,
+see that file.
+
+## Quick Reference
+
+**Project**: TaskAI - Phase 5 Advanced Cloud Deployment
+**Version**: 2.0.0
+**Phase**: 5 of 5
+
+### Core Principles Summary
+
+1. **Event-Driven First** - All inter-service communication via Kafka/Dapr pub/sub
+2. **Dapr Abstraction Layer** - No direct infrastructure dependencies
+3. **Cloud-Native Portability** - Works on Minikube, AKS, GKE, OKE
+4. **Spec-Driven Development** - No code without Task ID
+5. **AI-Assisted Development** - Use kubectl-ai and Gordon
+6. **Single Code Authority** - Claude Code writes all code
+7. **Microservices Separation** - Strict service boundaries
+8. **Authentication & Authorization** - JWT enforcement
+9. **Test-First When Specified** - TDD when requested
+10. **Database Persistence First** - PostgreSQL via SQLModel
+11. **Observability & Debuggability** - Structured logging, health endpoints
+12. **Stateless Server Architecture** - Horizontally scalable services
+
+### Technology Stack
+
+| Category | Technology |
+|----------|------------|
+| Runtime | Dapr 1.12+ |
+| Messaging | Kafka (Redpanda/Strimzi) |
+| Orchestration | Kubernetes 1.28+ |
+| Package Manager | Helm 3.x |
+| CI/CD | GitHub Actions |
+| Backend | FastAPI + Python 3.11+ |
+| Frontend | Next.js 14+ |
+| Database | Neon PostgreSQL |
+
+### Microservices
+
+- `frontend` - UI only
+- `backend` (chat-api) - Chat + Task CRUD + Events
+- `notification-service` - Consume reminders
+- `recurring-service` - Recurring task creation
+
+### Event Topics
+
+- `task-events` - Task lifecycle events
+- `reminders` - Reminder notifications
+- `task-updates` - Real-time updates (future)
+
+---
+
+Full constitution: `.specify/memory/constitution.md`

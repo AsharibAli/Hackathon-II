@@ -1,0 +1,225 @@
+# [Task]: T113
+# [Spec]: F-010 (US12)
+# [Description]: Production environment values for cloud deployment (AKS/GKE/OKE)
+
+# Global settings for production
+global:
+  imageRegistry: ""  # Set to your container registry, e.g., "ghcr.io/your-org"
+  imagePullSecrets:
+    - name: regcred
+  namespace: todo-app-production
+
+# Backend service configuration
+backend:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: todo-chatbot/backend
+    pullPolicy: Always
+    tag: ""  # Set to specific version tag for production
+  service:
+    type: LoadBalancer
+    port: 8000
+    annotations:
+      # Enable health check annotations for cloud providers
+      # Azure AKS
+      # service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /health
+      # GKE - external HTTP(S) LB
+      # cloud.google.com/neg: '{"ingress": true}'
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: warn  # Less verbose in production
+  config:
+    databaseUrl: ""  # Set via secret
+    secretKey: ""    # Set via secret
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Frontend service configuration
+frontend:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: todo-chatbot/frontend
+    pullPolicy: Always
+    tag: ""  # Set to specific version tag
+  service:
+    type: LoadBalancer
+    port: 3000
+    annotations: {}
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    nodeEnv: "production"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Notification service configuration
+notification-service:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: todo-chatbot/notification-service
+    pullPolicy: Always
+    tag: ""  # Set to specific version tag
+  service:
+    type: ClusterIP
+    port: 8001
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+    logLevel: warn
+  config:
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Recurring service configuration
+recurring-service:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: todo-chatbot/recurring-service
+    pullPolicy: Always
+    tag: ""  # Set to specific version tag
+  service:
+    type: ClusterIP
+    port: 8002
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+    logLevel: warn
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# PostgreSQL - using managed database in production
+postgresql:
+  enabled: false
+
+# External database configuration (e.g., Azure Database for PostgreSQL, Cloud SQL, etc.)
+externalDatabase:
+  enabled: true
+  host: ""
+  port: 5432
+  database: "todo_chatbot_production"
+  sslMode: "require"
+  existingSecret: "database-credentials"
+  existingSecretPasswordKey: "password"
+  existingSecretUsernameKey: "username"
+
+# Dapr configuration - using Redpanda Cloud
+dapr:
+  enabled: true
+  components:
+    pubsub:
+      name: kafka-pubsub
+      type: pubsub.kafka
+      metadata:
+        brokers: ""  # Set via secret or values override
+        authType: "password"
+        saslUsername: ""  # Set via secret
+        saslPassword: ""  # Set via secret
+        saslMechanism: "SCRAM-SHA-256"
+        tls: "true"
+    statestore:
+      name: statestore
+      type: state.postgresql
+      metadata:
+        connectionString: ""  # Set via secret
+
+# Ingress configuration for production (optional - use if not using LoadBalancer directly)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: todo.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: todo-tls
+      hosts:
+        - todo.example.com

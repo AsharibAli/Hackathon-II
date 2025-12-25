@@ -1,0 +1,160 @@
+# [Task]: T107
+# [Spec]: F-009 (US11)
+# [Description]: Minikube-specific values with NodePort configuration
+
+# Global settings for Minikube
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  namespace: todo-app
+
+# Backend service - expose via NodePort for Minikube access
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/backend
+    pullPolicy: Never  # Use local images in Minikube
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30080  # Access at minikube-ip:30080
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: debug
+  config:
+    databaseUrl: "postgresql://postgres:postgres@postgres:5432/todo_chatbot"
+    secretKey: "dev-secret-key-change-in-production"
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: "kafka-pubsub"
+    logLevel: "DEBUG"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Frontend service - expose via NodePort for Minikube access
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/frontend
+    pullPolicy: Never  # Use local images in Minikube
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30000  # Access at minikube-ip:30000
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    nodeEnv: "development"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  health:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Notification service - internal only
+notification-service:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/notification-service
+    pullPolicy: Never  # Use local images in Minikube
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8001
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+    logLevel: debug
+  config:
+    pubsubName: "kafka-pubsub"
+    logLevel: "DEBUG"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# Recurring service - internal only
+recurring-service:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-chatbot/recurring-service
+    pullPolicy: Never  # Use local images in Minikube
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8002
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+    logLevel: debug
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    pubsubName: "kafka-pubsub"
+    logLevel: "DEBUG"
+    logFormat: "json"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# Enable in-cluster PostgreSQL for Minikube
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "postgres"
+    database: todo_chatbot
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# Dapr configuration for Minikube
+dapr:
+  enabled: true
+  components:
+    pubsub:
+      name: kafka-pubsub
+      type: pubsub.kafka
+      metadata:
+        brokers: "kafka-cluster-kafka-bootstrap.kafka:9092"
+    statestore:
+      name: statestore
+      type: state.postgresql
+      metadata:
+        connectionString: "host=postgres user=postgres password=postgres port=5432 dbname=todo_chatbot sslmode=disable"

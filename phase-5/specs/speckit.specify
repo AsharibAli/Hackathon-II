@@ -1,0 +1,62 @@
+# Speckit Specify - Phase 5 Advanced Cloud Deployment
+
+This file is a symbolic link/reference to the authoritative specification at:
+`specs/004-phase5-cloud-deployment/spec.md`
+
+For the complete specification including all requirements, user stories, and acceptance criteria,
+see that file.
+
+## Quick Reference
+
+**Feature**: Phase 5 Advanced Cloud Deployment
+**Branch**: `004-phase5-cloud-deployment`
+**Created**: 2025-12-25
+**Status**: Draft
+
+### Feature Summary
+
+#### Part A: Application Features (7 features)
+| ID | Feature | Priority |
+|----|---------|----------|
+| F-001 | Task Priorities | P1 |
+| F-002 | Task Tags | P1 |
+| F-003 | Search Tasks | P2 |
+| F-004 | Filter & Sort | P2 |
+| F-005 | Due Dates | P1 |
+| F-006 | Reminders | P2 |
+| F-007 | Recurring Tasks | P3 |
+
+#### Part B: Infrastructure Features (6 features)
+| ID | Feature | Priority |
+|----|---------|----------|
+| F-008 | Kafka Integration via Dapr | P1 |
+| F-009 | Notification Service | P2 |
+| F-010 | Recurring Task Service | P3 |
+| F-011 | Local Minikube Deployment | P1 |
+| F-012 | Cloud Deployment (AKS/GKE/OKE) | P3 |
+| F-013 | CI/CD Pipeline | P3 |
+
+### Non-Functional Requirements Summary
+| ID | Category | Requirement |
+|----|----------|-------------|
+| NFR-001 | Performance | API response < 500ms p95 |
+| NFR-002 | Performance | Event processing < 2s |
+| NFR-003 | Availability | 99.5% uptime on cloud |
+| NFR-004 | Security | All secrets in K8s secrets |
+| NFR-005 | Observability | JSON structured logs |
+| NFR-006 | Scalability | Each service scales independently |
+
+### Kafka Topics
+- `task-events` - Task lifecycle events (created/updated/completed/deleted)
+- `reminders` - Scheduled reminder notifications
+- `task-updates` - Real-time updates (future)
+
+### Microservices
+- `frontend` - Next.js UI
+- `backend` (chat-api) - FastAPI + Dapr events
+- `notification-service` - Consumes reminders
+- `recurring-service` - Creates recurring task occurrences
+
+---
+
+Full specification: `specs/004-phase5-cloud-deployment/spec.md`

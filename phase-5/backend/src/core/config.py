@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Phase 5: Dapr Configuration [Task: T089]
+    DAPR_ENABLED: bool = True
+    DAPR_HTTP_PORT: int = 3500
+    PUBSUB_NAME: str = "kafka-pubsub"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

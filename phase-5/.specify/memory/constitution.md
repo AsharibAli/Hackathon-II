@@ -1,66 +1,176 @@
 <!--
 Sync Impact Report:
-Version Change: 1.0.0 → 1.1.0 (MINOR - new principles added for Phase-3 AI/CUI)
-Modified Principles: None (existing 7 principles preserved)
+Version Change: 1.1.0 → 2.0.0 (MAJOR - complete architectural pivot to cloud-native microservices)
+Modified Principles:
+  - Principle I: Renamed "Spec-First Development" → "Spec-Driven Development" (P4 in user input)
+  - Principle II: "Single Code Authority" retained as is
+  - Principle III: "Separation of Concerns" → expanded to microservices boundaries
+  - Principle IV: "Authentication & Authorization" retained, adapted for Kubernetes secrets
+  - Principle V: "Test-First When Specified" retained with cloud testing requirements
+  - Principle VI: "Database Persistence First" retained for Neon PostgreSQL
+  - Principle VII: "Observability & Debuggability" enhanced for cloud-native
+  - Principle VIII: "Stateless Server Architecture" retained, applied to all microservices
+  - Principle IX: "Tool-Driven AI Behavior (MCP)" → replaced by "Dapr Abstraction Layer" (P2)
+  - Principle X: "Conversation Persistence" → replaced by "Event-Driven First" (P1)
 Added Sections:
-  - Principle VIII: Stateless Server Architecture
-  - Principle IX: Tool-Driven AI Behavior (MCP)
-  - Principle X: Conversation Persistence
-  - Architectural Constraints: OpenAI Agents SDK, MCP SDK, ChatKit UI
-Removed Sections: None
+  - NEW Principle: Cloud-Native Portability (P3)
+  - NEW Principle: AI-Assisted Development (P5)
+  - Technology Constraints (MUST USE / MUST NOT USE)
+  - Microservices Boundaries Table
+  - Kafka Event Topics
+  - Dapr Components Required
+  - Quality Constraints (Performance, Reliability, Security, Observability)
+  - Deployment Constraints (Environment Hierarchy, Helm Strategy, CI/CD Rules)
+  - Updated folder structure for Phase-5 layout
+Removed Sections:
+  - OpenAI Agents SDK, MCP SDK references (replaced by Dapr)
+  - ChatKit UI references
+  - Phase-specific principle markers "(Phase-3)"
 Templates Status:
   - ✅ .specify/templates/plan-template.md (Constitution Check section compatible)
   - ✅ .specify/templates/spec-template.md (Requirements alignment verified)
   - ✅ .specify/templates/tasks-template.md (Task categorization aligned)
-  - ✅ README.md (Exists, will need update for Phase-3 features post-implementation)
+  - ⚠ specs/ folder structure needs update post-implementation
 Follow-up TODOs:
-  - Update README.md after Phase-3 implementation to document CUI features
-  - Create MCP tool documentation in specs/
+  - Create specs/speckit.specify for Phase 5 requirements
+  - Create specs/speckit.plan for Phase 5 architecture
+  - Create specs/speckit.tasks for Phase 5 task breakdown
+  - Set up Helm chart structure under helm/
+  - Create Dapr components under dapr/components/
 -->
 
-# Todo Full-Stack Web Application Constitution
+# TaskAI Constitution - Phase 5 Advanced Cloud Deployment
+
+## Project Identity
+
+**Project Name**: TaskAI - Phase 5 Advanced Cloud Deployment
+**Version**: 2.0.0
+**Phase**: 5 of 5
+**Foundation**: Phase 4 Local Kubernetes Deployment (Completed & Working)
 
 ## Core Principles
 
-### I. Spec-First Development (NON-NEGOTIABLE)
+### I. Event-Driven First (NON-NEGOTIABLE)
 
-No code implementation shall begin before a complete specification is written, reviewed, and approved. Every feature MUST follow this workflow:
+All inter-service communication MUST go through Kafka/Dapr pub/sub:
+
+- No direct HTTP calls between microservices for business events
+- Synchronous calls allowed ONLY for user-facing request/response patterns
+- Event producers MUST NOT know about consumers (loose coupling)
+- Events MUST be immutable and carry all necessary context
+
+**Rationale**: Enables loose coupling between services, supports horizontal scaling, provides
+natural audit trail, allows adding new consumers without modifying producers, and supports
+eventual consistency patterns required for distributed systems.
+
+### II. Dapr Abstraction Layer (NON-NEGOTIABLE)
+
+Applications MUST NOT have direct dependencies on infrastructure client libraries:
+
+- All pub/sub accessed via Dapr sidecar HTTP API (`/v1.0/publish/`, `/v1.0/subscribe`)
+- All state management via Dapr state API (`/v1.0/state/`)
+- All secrets accessed via Dapr secrets API (`/v1.0/secrets/`)
+- Infrastructure swappable by changing Dapr component YAML, not application code
+- Direct Kafka client libraries (kafka-python, confluent-kafka) are FORBIDDEN
+
+**Rationale**: Provides infrastructure abstraction, enables multi-cloud portability, simplifies
+application code, supports local development with different backends, and allows infrastructure
+upgrades without code changes.
+
+### III. Cloud-Native Portability (NON-NEGOTIABLE)
+
+Deployment MUST work on multiple Kubernetes platforms without code changes:
+
+- Minikube (local development)
+- AKS (Azure Kubernetes Service)
+- GKE (Google Kubernetes Engine)
+- OKE (Oracle Kubernetes Engine)
+
+Requirements:
+- Use Helm values files for environment-specific configuration
+- No hardcoded cloud provider specifics in application code
+- Use NodePort on Minikube, LoadBalancer on cloud (via Helm values)
+- All configuration via ConfigMaps, Secrets, or Dapr components
+
+**Rationale**: Prevents vendor lock-in, supports development/staging/production parity,
+enables team flexibility in choosing deployment targets, and reduces migration costs.
+
+### IV. Spec-Driven Development (NON-NEGOTIABLE)
+
+No code implementation shall begin before a complete specification is written, reviewed,
+and approved. Every feature MUST follow this workflow:
 
 1. Specification (`/sp.specify`) → User approval
 2. Planning (`/sp.plan`) → User approval
 3. Task generation (`/sp.tasks`) → User approval
 4. Implementation (`/sp.implement`) → Only after all approvals
 
-**Rationale**: Prevents rework, ensures alignment with requirements, maintains project documentation quality, and enables proper architectural review before committing to an implementation path.
+Additional Phase-5 requirements:
+- No code written without corresponding Task ID
+- All features trace back to speckit.specify requirements
+- Every PR must reference Task IDs and acceptance criteria
 
-### II. Single Code Authority
+**Rationale**: Prevents rework, ensures alignment with requirements, maintains project
+documentation quality, enables proper architectural review, and provides traceability
+from requirements to implementation.
 
-Claude Code is the ONLY entity permitted to write code. Human developers provide specifications, review outputs, and approve decisions, but MUST NOT directly write implementation code.
+### V. AI-Assisted Development
 
-**Rationale**: Ensures consistent code quality, enforces spec-driven workflow, maintains architectural coherence, and prevents drift from specifications.
+Use AI-powered tools where possible for Kubernetes and container operations:
 
-### III. Separation of Concerns
+- kubectl-ai for Kubernetes resource management and debugging
+- Gordon (docker ai) for container operations and troubleshooting
+- Document AI tool usage in implementation notes
+- AI suggestions MUST be reviewed before applying
 
-Frontend and backend responsibilities MUST remain strictly separated:
+**Rationale**: Accelerates development velocity, reduces boilerplate, provides intelligent
+suggestions for complex configurations, and helps catch common mistakes in YAML manifests.
 
-- **Frontend**: UI components, client-side state, user interactions, API client calls
-- **Backend**: Business logic, database operations, authentication, API endpoints, AI agent orchestration
-- **No mixing**: Backend logic MUST NOT appear in frontend code; frontend concerns MUST NOT leak into backend
+### VI. Single Code Authority
 
-**Rationale**: Enables independent development, testing, and deployment of each layer; improves maintainability and supports team specialization.
+Claude Code is the ONLY entity permitted to write code. Human developers provide
+specifications, review outputs, and approve decisions, but MUST NOT directly write
+implementation code.
 
-### IV. Authentication & Authorization Enforcement
+**Rationale**: Ensures consistent code quality, enforces spec-driven workflow, maintains
+architectural coherence, and prevents drift from specifications.
+
+### VII. Microservices Separation
+
+Frontend and backend responsibilities MUST remain strictly separated, with additional
+microservices isolation:
+
+| Service | Responsibility |
+|---------|----------------|
+| frontend | UI only, no business logic |
+| backend (chat-api) | Chat + Task CRUD + Event publishing |
+| notification-service | Consume reminders, send notifications |
+| recurring-service | Consume task.completed, create next occurrence |
+
+Rules:
+- Each service owns its domain completely
+- Cross-service communication ONLY via events or API gateway
+- No shared databases between services (except for migration phases)
+- Each service deployable and scalable independently
+
+**Rationale**: Enables independent development, testing, and deployment; improves
+maintainability; supports team specialization; and allows per-service scaling.
+
+### VIII. Authentication & Authorization Enforcement
 
 Every API request MUST enforce authentication and authorization:
 
-- All endpoints (except public routes like `/auth/login`, `/auth/register`) MUST verify JWT tokens
+- All endpoints (except public routes like `/auth/login`, `/auth/register`) MUST
+  verify JWT tokens
 - User identity MUST be extracted from validated tokens
 - Data access MUST be scoped to the authenticated user
 - Multi-user isolation MUST be guaranteed at the database query level
+- Secrets MUST be stored in Kubernetes Secrets or Dapr secret stores, never in code
 
-**Rationale**: Ensures secure multi-user operation, prevents unauthorized data access, maintains data privacy, and meets security compliance requirements.
+**Rationale**: Ensures secure multi-user operation, prevents unauthorized data access,
+maintains data privacy, and meets security compliance requirements.
 
-### V. Test-First When Specified
+### IX. Test-First When Specified
 
 When tests are explicitly requested in specifications:
 
@@ -70,120 +180,196 @@ When tests are explicitly requested in specifications:
 - Code is then refactored while keeping tests passing (Refactor phase)
 - Contract tests verify API boundaries
 - Integration tests verify user journeys
+- Kubernetes manifests tested via dry-run and lint
 
-**Rationale**: Validates requirements understanding, prevents regression, ensures testable architecture, and provides executable specifications.
+**Rationale**: Validates requirements understanding, prevents regression, ensures
+testable architecture, and provides executable specifications.
 
-### VI. Database Persistence First
+### X. Database Persistence First
 
-All application data MUST be persisted in PostgreSQL:
+All application data MUST be persisted in PostgreSQL (Neon):
 
 - No in-memory-only data structures for user data
 - SQLModel ORM MUST be used for all database operations
 - Migrations MUST be version-controlled and reversible
 - Schema changes MUST be applied via migrations, never manual SQL
+- Database connection strings stored in Kubernetes Secrets
 
-**Rationale**: Ensures data durability, enables rollback capabilities, maintains schema consistency across environments, and supports multiple concurrent users.
+**Rationale**: Ensures data durability, enables rollback capabilities, maintains schema
+consistency across environments, and supports multiple concurrent users.
 
-### VII. Observability & Debuggability
+### XI. Observability & Debuggability
 
 All code MUST support operational visibility:
 
-- Structured logging at appropriate levels (INFO, WARNING, ERROR)
+- Structured JSON logging at appropriate levels (INFO, WARNING, ERROR)
 - Request correlation IDs for distributed tracing
 - Error responses MUST include actionable context (without leaking sensitive data)
 - Performance-critical operations MUST be instrumented
+- Dapr observability enabled for sidecar metrics
+- Health endpoints: `/health` (liveness), `/ready` (readiness)
+- Kubernetes probes configured for all deployments
 
-**Rationale**: Enables rapid debugging, supports production monitoring, facilitates performance optimization, and reduces mean time to resolution for incidents.
+**Rationale**: Enables rapid debugging, supports production monitoring, facilitates
+performance optimization, and reduces mean time to resolution for incidents.
 
-### VIII. Stateless Server Architecture (Phase-3)
+### XII. Stateless Server Architecture
 
-The backend server MUST be stateless:
+All backend services MUST be stateless:
 
 - No in-memory session storage; all session data MUST be persisted in the database
 - No request-scoped caches that cannot be reconstructed from persistent storage
-- AI agent state (conversation history, tool call results) MUST be stored in PostgreSQL
 - Server instances MUST be horizontally scalable without sticky sessions
-- Every request MUST be self-contained with all required context from database or request payload
+- Every request MUST be self-contained with all required context
+- Graceful shutdown handling for all services
 
-**Rationale**: Enables horizontal scaling, simplifies deployment, supports container orchestration, eliminates session affinity requirements, and ensures fault tolerance through stateless design.
+**Rationale**: Enables horizontal scaling, simplifies deployment, supports container
+orchestration, eliminates session affinity requirements, and ensures fault tolerance.
 
-### IX. Tool-Driven AI Behavior (MCP)
+## Technology Constraints
 
-All AI agent operations MUST be mediated through MCP (Model Context Protocol) tools:
+### MUST USE
 
-- AI agents MUST NOT perform direct database operations; they MUST invoke MCP tools
-- Each task operation (create, read, update, delete, complete) MUST be exposed as an MCP tool
-- MCP tool definitions MUST include clear input schemas and output formats
-- AI agents MUST NOT generate arbitrary code or SQL; they MUST use predefined tools
-- Tool responses MUST be structured and parseable by the AI agent
+| Category | Technology | Version |
+|----------|------------|---------|
+| Runtime | Dapr | 1.12+ |
+| Messaging | Kafka (via Redpanda/Strimzi) | 3.x |
+| Orchestration | Kubernetes | 1.28+ |
+| Package Manager | Helm | 3.x |
+| CI/CD | GitHub Actions | - |
+| Backend | FastAPI + Python | 3.11+ |
+| Frontend | Next.js | 14+ |
+| Database | Neon PostgreSQL | - |
+| Backend Pkg | uv (ONLY) | - |
+| Frontend Pkg | pnpm (ONLY) | - |
 
-**Rationale**: Ensures controlled AI behavior, prevents prompt injection attacks, enables auditing of AI actions, maintains separation between AI reasoning and system operations, and provides a clear contract for AI capabilities.
+### MUST NOT USE
 
-### X. Conversation Persistence
+- Direct Kafka client libraries (kafka-python, confluent-kafka) - use Dapr
+- LoadBalancer service type on Minikube - use NodePort
+- Hardcoded connection strings - use Dapr secrets or K8s secrets
+- `latest` image tags in production - use semantic versioning
+- npm or yarn - use pnpm for frontend
+- pip or poetry - use uv for backend
 
-All conversational interactions MUST be persisted:
+## Event Architecture
 
-- User messages and AI responses MUST be stored in the database
-- Conversation history MUST be scoped to the authenticated user
-- Message ordering MUST be preserved with timestamps
-- Tool calls and results MUST be logged for debugging and audit
-- Conversation context MUST be retrievable for multi-turn interactions
+### Kafka Topics
 
-**Rationale**: Enables conversation continuity across sessions, supports debugging of AI interactions, provides audit trail for AI decisions, and allows users to review past interactions.
+| Topic | Producers | Consumers |
+|-------|-----------|-----------|
+| task-events | backend | recurring-service, audit |
+| reminders | backend | notification-service |
+| task-updates | backend | websocket-service (future) |
 
-## Architectural Constraints
+### Dapr Components Required
 
-### Technology Stack (MANDATORY)
+- `pubsub.kafka` - Kafka abstraction for event publishing/subscribing
+- `state.postgresql` - State management for distributed state
+- `secretstores.kubernetes` - Secrets management via K8s secrets
+- Dapr Jobs API - Scheduled reminders and recurring task processing
 
-The following technologies are NON-NEGOTIABLE and MUST be used:
+## Quality Constraints
 
-**Monorepo Structure**:
-- Spec-Kit Plus conventions MUST be followed
-- `backend/` and `frontend/` as top-level directories
-- Shared specifications under `specs/`
-- Shared governance under `.specify/memory/`
+### Performance
 
-**Frontend Stack**:
-- Framework: Next.js with App Router (latest stable)
-- Language: TypeScript (strict mode enabled)
-- Styling: Tailwind CSS
-- UI Components: shadcn/ui
-- Chat Interface: OpenAI ChatKit UI
-- Package Manager: pnpm (ONLY - no npm or yarn)
+- API response time < 500ms (p95)
+- Event processing latency < 2 seconds
+- Pod startup time < 30 seconds
 
-**Backend Stack**:
-- Framework: FastAPI (Python 3.11+)
-- ORM: SQLModel
-- Database: Neon Serverless PostgreSQL
-- Authentication: Better Auth with JWT
-- AI Agents: OpenAI Agents SDK
-- Tool Protocol: Official MCP SDK
-- Package Manager: uv (ONLY - no pip or poetry)
+### Reliability
 
-**Rationale**: Standardizes tooling, ensures team familiarity, leverages modern best practices, and minimizes decision paralysis during implementation.
+- All services must have health endpoints (`/health`, `/ready`)
+- Kubernetes liveness and readiness probes required for all deployments
+- Graceful shutdown handling for all services
+- At-least-once delivery for events
 
-### Constraint Validations
+### Security
 
-All implementation plans MUST validate against these constraints:
+- No secrets in code or ConfigMaps
+- Use Kubernetes secrets or Dapr secret stores exclusively
+- Non-root container users
+- Network policies for inter-service communication
 
-- ✅ TypeScript strict mode enabled in `tsconfig.json`
-- ✅ FastAPI app properly configured with CORS, middleware, exception handlers
-- ✅ SQLModel models use proper type annotations and relationships
-- ✅ Better Auth integrated with JWT secret from environment variables
-- ✅ Neon database connection string stored securely in `.env` (never committed)
-- ✅ OpenAI Agents SDK configured with API key from environment variables
-- ✅ MCP server exposes task operations as tools with validated schemas
-- ✅ Chat UI renders message history from database-persisted conversations
+### Observability
+
+- Structured JSON logging
+- Dapr observability enabled
+- Health endpoints: `/health`, `/ready`
+- Correlation IDs for distributed tracing
+
+## Deployment Constraints
+
+### Environment Hierarchy
+
+```
+minikube (local) → staging (cloud) → production (cloud)
+```
+
+### Helm Values Strategy
+
+```
+values.yaml              # Defaults
+values-minikube.yaml     # Local overrides
+values-staging.yaml      # Staging overrides
+values-production.yaml   # Production overrides
+```
+
+### CI/CD Rules
+
+- Push to `main` → Deploy to staging
+- Git tag `v*` → Deploy to production
+- All deployments via Helm
+- Rollback capability required
+- No manual kubectl apply in production
+
+## Project Structure
+
+```
+phase-5/
+├── specs/
+│   ├── speckit.constitution    # Governance (generated from this)
+│   ├── speckit.specify         # Requirements
+│   ├── speckit.plan            # Architecture
+│   └── speckit.tasks           # Task breakdown
+├── src/
+│   ├── backend/                # FastAPI + Dapr
+│   ├── frontend/               # Next.js
+│   ├── notification-service/   # Event consumer
+│   └── recurring-service/      # Event consumer
+├── helm/
+│   ├── todo-chatbot/           # Parent chart
+│   └── charts/                 # Sub-charts
+├── dapr/
+│   └── components/             # Dapr component YAMLs
+├── .github/
+│   └── workflows/              # CI/CD pipelines
+└── docs/
+    └── PHASE-5-DEPLOYMENT.md
+```
+
+## Definition of Done
+
+A feature is complete when:
+
+- [ ] Code implements the Task specification exactly
+- [ ] Unit tests pass (>80% coverage for new code)
+- [ ] Works on Minikube locally
+- [ ] Works on cloud (AKS/GKE/OKE)
+- [ ] Dapr integration verified
+- [ ] Events published/consumed correctly
+- [ ] Documentation updated
+- [ ] CI/CD pipeline passes
 
 ## Development Workflow
 
 ### Workflow Stages
 
-1. **Specification** (`/sp.specify`): Capture user requirements, acceptance criteria, success metrics
+1. **Specification** (`/sp.specify`): Capture user requirements, acceptance criteria
 2. **Planning** (`/sp.plan`): Design architecture, define structure, identify dependencies
 3. **Task Generation** (`/sp.tasks`): Break down implementation into ordered, testable tasks
-4. **Implementation** (`/sp.implement`): Execute tasks with progress tracking and validation
-5. **ADR Documentation** (`/sp.adr`): Capture significant architectural decisions when detected
+4. **Implementation** (`/sp.implement`): Execute tasks with progress tracking
+5. **ADR Documentation** (`/sp.adr`): Capture significant architectural decisions
 
 ### Quality Gates
 
@@ -198,20 +384,24 @@ Each stage MUST pass these gates before proceeding:
 **Planning Gate**:
 - Constitution compliance verified
 - Technology stack matches constraints
-- Project structure follows monorepo conventions
+- Project structure follows conventions
 - Dependencies identified and justified
+- Dapr components defined
 
 **Task Gate**:
 - Tasks reference specific file paths
 - Dependencies between tasks clearly marked
 - Parallel execution opportunities identified ([P] markers)
 - Each task is independently testable
+- Kubernetes manifests included in tasks
 
 **Implementation Gate**:
 - All tasks completed and verified
 - Tests passing (if specified)
 - No hardcoded secrets or credentials
 - Code follows language-specific conventions
+- Helm charts lint successfully
+- Works on Minikube
 
 ### Human-as-Tool Strategy
 
@@ -221,8 +411,6 @@ Claude Code MUST invoke the user for:
 2. **Architectural Uncertainty**: Present options with tradeoffs, get user preference
 3. **Unforeseen Dependencies**: Surface them and ask for prioritization
 4. **Completion Checkpoints**: Summarize what was done, confirm next steps
-
-**Rationale**: Treats human judgment as a specialized resource for decisions requiring context, preference, or domain expertise that AI cannot infer.
 
 ## Governance
 
@@ -250,6 +438,7 @@ All work MUST comply with this constitution:
 
 ### Runtime Guidance
 
-For agent-specific runtime development guidance, refer to `CLAUDE.md` (primary) and this constitution (governance).
+For agent-specific runtime development guidance, refer to `CLAUDE.md` (primary)
+and this constitution (governance).
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-18 | **Last Amended**: 2025-12-19
+**Version**: 2.0.0 | **Ratified**: 2025-12-18 | **Last Amended**: 2025-12-25

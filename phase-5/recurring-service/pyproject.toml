@@ -1,0 +1,39 @@
+# [Task]: T100
+# [Spec]: F-010 (R-010.1)
+# [Description]: Recurring task service dependencies
+
+[project]
+name = "recurring-service"
+version = "1.0.0"
+description = "Recurring task service for TaskAI Phase 5"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "httpx>=0.26.0",
+    "structlog>=24.1.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "cloudevents>=1.10.0",
+    "python-dateutil>=2.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,73 @@
+# Speckit Plan - Phase 5 Advanced Cloud Deployment
+
+This file is a symbolic link/reference to the authoritative implementation plan at:
+`specs/004-phase5-cloud-deployment/plan.md`
+
+For the complete plan including architecture, component specs, and deployment design,
+see that file.
+
+## Quick Reference
+
+**Feature**: Phase 5 Advanced Cloud Deployment
+**Branch**: `004-phase5-cloud-deployment`
+**Created**: 2025-12-25
+**Status**: Complete
+
+### Architecture Summary
+
+```
+Frontend (Next.js) ──▶ Backend (FastAPI) ──▶ Dapr Sidecar ──▶ Kafka
+                                                    │
+                            ┌───────────────────────┴───────────────────────┐
+                            ▼                                               ▼
+                    Recurring Service                               Notification Service
+                    (task.completed → create next)                  (reminders → log)
+```
+
+### Components
+
+| Component | Port | Dapr App ID | Language |
+|-----------|------|-------------|----------|
+| Backend | 8000 | todo-backend | Python 3.11 |
+| Frontend | 3000 | todo-frontend | TypeScript |
+| Notification | 8001 | notification-service | Python 3.11 |
+| Recurring | 8002 | recurring-service | Python 3.11 |
+
+### Kafka Topics
+
+| Topic | Producers | Consumers |
+|-------|-----------|-----------|
+| task-events | backend | recurring-service |
+| reminders | backend | notification-service |
+| task-updates | backend | (future) |
+
+### Constitution Check
+
+All 12 principles PASSED:
+- ✅ Event-Driven First
+- ✅ Dapr Abstraction Layer
+- ✅ Cloud-Native Portability
+- ✅ Spec-Driven Development
+- ✅ AI-Assisted Development
+- ✅ Single Code Authority
+- ✅ Microservices Separation
+- ✅ Authentication & Authorization
+- ✅ Test-First When Specified
+- ✅ Database Persistence First
+- ✅ Observability & Debuggability
+- ✅ Stateless Server Architecture
+
+### Planning Artifacts
+
+| File | Description |
+|------|-------------|
+| plan.md | Full implementation plan |
+| research.md | Technology decisions |
+| data-model.md | Entity schemas |
+| contracts/api.yaml | OpenAPI spec |
+| contracts/events.md | Kafka event contracts |
+| quickstart.md | Developer setup |
+
+---
+
+Full plan: `specs/004-phase5-cloud-deployment/plan.md`

@@ -1,0 +1,73 @@
+# [Task]: T104
+# [Spec]: F-009 (US11)
+# [Description]: Default values for recurring-service Helm chart
+
+replicaCount: 1
+
+image:
+  repository: todo-chatbot/recurring-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8002
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Dapr sidecar configuration
+dapr:
+  enabled: true
+  appId: recurring-service
+  appPort: 8002
+  logLevel: info
+  config: ""
+
+# Application configuration
+config:
+  backendUrl: "http://backend:8000"
+  pubsubName: "kafka-pubsub"
+  logLevel: "INFO"
+  logFormat: "json"
+
+# Health check configuration
+health:
+  livenessPath: /health
+  readinessPath: /ready
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
