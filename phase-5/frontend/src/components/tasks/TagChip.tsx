@@ -27,13 +27,14 @@ const tagColors = [
   { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/20" },
 ];
 
-function getTagColor(name: string) {
+function getTagColor(name: string): { bg: string; text: string; border: string } {
   // Simple hash function to get consistent color for same tag name
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
   }
-  return tagColors[Math.abs(hash) % tagColors.length];
+  const index = Math.abs(hash) % tagColors.length;
+  return tagColors[index] ?? tagColors[0]!;
 }
 
 export function TagChip({

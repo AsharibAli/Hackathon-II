@@ -8,7 +8,6 @@ import { useState } from "react";
 import {
   Priority,
   SortField,
-  SortOrder,
   TaskFilters as TFilters,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
