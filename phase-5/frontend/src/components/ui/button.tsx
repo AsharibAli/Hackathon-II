@@ -1,6 +1,6 @@
 /**
- * Button component using Radix UI and class-variance-authority.
- * Provides consistent styling for all button variants.
+ * Button component.
+ * Neo-Editorial styled button with multiple variants.
  */
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
@@ -8,26 +8,35 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-soft hover:bg-primary/90 hover:shadow-elevated active:scale-[0.98] rounded-xl",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90 hover:shadow-lg",
+          "bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 hover:shadow-elevated rounded-xl",
         outline:
-          "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground hover:border-accent",
+          "border border-border/60 bg-background hover:bg-muted hover:border-border hover:text-foreground rounded-xl",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 rounded-xl",
+        ghost:
+          "hover:bg-muted hover:text-foreground rounded-lg",
+        link:
+          "text-primary underline-offset-4 hover:underline",
+        accent:
+          "bg-accent text-accent-foreground shadow-soft hover:bg-accent/90 hover:shadow-elevated rounded-xl",
+        success:
+          "bg-emerald-600 text-white shadow-soft hover:bg-emerald-700 hover:shadow-elevated dark:bg-emerald-500 dark:hover:bg-emerald-600 rounded-xl",
       },
       size: {
         default: "h-11 px-5 py-2",
-        sm: "h-9 rounded-lg px-4 text-xs",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        sm: "h-9 px-4 text-xs rounded-lg",
+        lg: "h-12 px-8 text-base rounded-xl",
+        xl: "h-14 px-10 text-base rounded-xl",
+        icon: "h-10 w-10 rounded-lg",
+        "icon-sm": "h-8 w-8 rounded-lg",
+        "icon-lg": "h-12 w-12 rounded-xl",
       },
     },
     defaultVariants: {

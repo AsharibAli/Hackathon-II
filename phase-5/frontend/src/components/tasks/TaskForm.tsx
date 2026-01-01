@@ -1,6 +1,6 @@
 /**
  * TaskForm component.
- * Handles task creation with validation.
+ * Neo-Editorial styled task creation form.
  */
 "use client";
 
@@ -8,10 +8,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tasksApi, ApiError, Task } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 
 interface TaskFormProps {
   onTaskCreated?: (task: Task) => void;
@@ -62,11 +61,9 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
 
       toast.success("Task created successfully!");
 
-      // Reset form
       setTitle("");
       setDescription("");
 
-      // Notify parent component
       if (onTaskCreated) {
         onTaskCreated(task);
       }
@@ -85,27 +82,41 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
   };
 
   return (
-    <Card className="sticky top-4">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Plus className="h-5 w-5 text-primary" />
-          Create New Task
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="rounded-2xl border border-border/60 bg-card shadow-card overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-border/50 bg-muted/30">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Plus className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">
+              Create Task
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Add a new item to your list
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">
               Title <span className="text-destructive">*</span>
             </Label>
             <Input
               id="title"
-              placeholder="Enter task title"
+              placeholder="What needs to be done?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={isLoading}
               aria-invalid={!!errors.title}
               maxLength={200}
+              className="h-11"
             />
             {errors.title && (
               <p className="text-sm text-destructive">{errors.title}</p>
@@ -115,45 +126,62 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
             </p>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+            <Label htmlFor="description" className="text-sm font-medium">
+              Description
+            </Label>
             <textarea
               id="description"
-              placeholder="Enter task description (optional)"
+              placeholder="Add details... (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isLoading}
               aria-invalid={!!errors.description}
               maxLength={2000}
               rows={4}
-              className="flex w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              className="flex w-full rounded-lg border border-input bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary transition-all disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description}</p>
             )}
-            <p className="text-xs text-muted-foreground">
-              {description.length}/2000 characters
-            </p>
           </div>
 
+          {/* Error message */}
           {errors.general && (
             <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
               {errors.general}
             </div>
           )}
 
-          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+          {/* Submit button */}
+          <Button
+            type="submit"
+            className="w-full h-11 gap-2 shadow-soft hover:shadow-elevated transition-shadow"
+            disabled={isLoading}
+          >
             {isLoading ? (
-              "Creating..."
+              <>
+                <div className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                Creating...
+              </>
             ) : (
               <>
-                <Plus className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
                 Create Task
               </>
             )}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Tip */}
+      <div className="px-6 py-4 bg-muted/20 border-t border-border/30">
+        <p className="text-xs text-muted-foreground text-center">
+          <span className="font-medium">Tip:</span> Use the chat mode for
+          natural language task creation
+        </p>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,96 @@
+# [Task]: Cloud-Native Implementation
+# [Description]: Dapr Kafka pubsub component for DigitalOcean Managed Kafka
+# [Prerequisites]:
+#   1. Create DigitalOcean Managed Kafka cluster
+#   2. Create Kubernetes secret with credentials (see template below)
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: todo-app
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # DigitalOcean Managed Kafka broker endpoints
+    # Format: private-<cluster-name>-<id>-do-user-<user-id>-0.db.ondigitalocean.com:25073
+    - name: brokers
+      secretKeyRef:
+        name: kafka-credentials
+        key: brokers
+
+    # SASL Authentication for DigitalOcean Managed Kafka
+    - name: authType
+      value: "password"
+    - name: saslUsername
+      secretKeyRef:
+        name: kafka-credentials
+        key: username
+    - name: saslPassword
+      secretKeyRef:
+        name: kafka-credentials
+        key: password
+    # DigitalOcean Managed Kafka uses SCRAM-SHA-512
+    - name: saslMechanism
+      value: "SCRAM-SHA-512"
+
+    # TLS configuration (required for DigitalOcean Managed Kafka)
+    - name: tls
+      value: "true"
+    - name: skipVerify
+      value: "false"
+
+    # Consumer configuration
+    - name: consumerGroup
+      value: "todo-chatbot"
+    - name: initialOffset
+      value: "oldest"
+
+    # Producer configuration
+    - name: maxMessageBytes
+      value: "1048576"  # 1MB
+    - name: clientID
+      value: "todo-chatbot-producer"
+
+    # Retry configuration
+    - name: consumeRetryInterval
+      value: "100ms"
+    - name: publishRetryCount
+      value: "3"
+
+    # Heartbeat and session configuration
+    - name: heartbeatInterval
+      value: "3s"
+    - name: sessionTimeout
+      value: "30s"
+
+---
+# Secret template for DigitalOcean Managed Kafka credentials
+#
+# IMPORTANT: Create this secret with your actual credentials BEFORE deployment:
+#
+# Using kubectl:
+#   kubectl create secret generic kafka-credentials \
+#     --from-literal=brokers="private-<cluster>-<id>-do-user-<user-id>-0.db.ondigitalocean.com:25073" \
+#     --from-literal=username="doadmin" \
+#     --from-literal=password="<your-password>" \
+#     -n todo-app
+#
+# Or using doctl to get credentials:
+#   doctl databases user get <database-id> doadmin --format Password
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-credentials-template
+  namespace: todo-app
+  annotations:
+    description: "Template only - replace with actual DigitalOcean Kafka credentials"
+    do-not-apply: "true"
+type: Opaque
+stringData:
+  # Get these from DigitalOcean Console -> Databases -> Your Kafka Cluster -> Connection Details
+  brokers: "private-kafka-xxxxx-do-user-xxxxx-0.db.ondigitalocean.com:25073"
+  username: "doadmin"
+  password: "your-kafka-password-from-digitalocean"

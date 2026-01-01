@@ -1,3 +1,7 @@
+/**
+ * ChatLayout component.
+ * Neo-Editorial styled layout for chat interface with sidebar.
+ */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -13,27 +17,31 @@ interface ChatLayoutProps {
 
 // Generate a UUID v4 client-side
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
 
 export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(initialConversationId || null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(initialConversationId || null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [pendingConversationId, setPendingConversationId] = useState<string | null>(null);
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
 
   // Update URL without triggering navigation
   const updateURL = useCallback((conversationId: string | null) => {
-    const newPath = conversationId ? `/c/${conversationId}` : '/';
+    const newPath = conversationId ? `/c/${conversationId}` : "/";
     if (window.location.pathname !== newPath) {
-      window.history.pushState({}, '', newPath);
+      window.history.pushState({}, "", newPath);
     }
   }, []);
 
@@ -62,8 +70,8 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
-      if (path.startsWith('/c/')) {
-        const id = path.split('/c/')[1] || null;
+      if (path.startsWith("/c/")) {
+        const id = path.split("/c/")[1] || null;
         setActiveConversationId(id);
         setPendingConversationId(null);
       } else {
@@ -72,9 +80,9 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
         setMessages([]);
       }
     };
-    
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const loadConversations = async () => {
@@ -97,7 +105,6 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
       console.error("Failed to load messages:", error);
       setMessages([]);
       toast.error("Conversation not found");
-      // Reset to home
       setActiveConversationId(null);
       updateURL(null);
     } finally {
@@ -106,17 +113,14 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
   };
 
   const handleNewChat = () => {
-    // Generate a new conversation ID immediately
     const newId = generateUUID();
     setPendingConversationId(newId);
     setActiveConversationId(newId);
     setMessages([]);
-    // Update URL immediately
     updateURL(newId);
   };
 
   const handleSelectConversation = (id: string) => {
-    // Clear pending state since we're selecting an existing conversation
     setPendingConversationId(null);
     setActiveConversationId(id);
     updateURL(id);
@@ -126,9 +130,7 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
     try {
       await conversationsApi.rename(id, title);
       setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === id ? { ...conv, title } : conv
-        )
+        prev.map((conv) => (conv.id === id ? { ...conv, title } : conv))
       );
       toast.success("Conversation renamed");
     } catch (error) {
@@ -140,8 +142,7 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
     try {
       await conversationsApi.delete(id);
       setConversations((prev) => prev.filter((conv) => conv.id !== id));
-      
-      // If we deleted the active conversation, go to home
+
       if (id === activeConversationId) {
         setActiveConversationId(null);
         setPendingConversationId(null);
@@ -155,7 +156,6 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
   };
 
   const handleSendMessage = async (content: string) => {
-    // Optimistic update - add user message
     const tempUserMessage: Message = {
       id: "temp-user-" + Date.now(),
       role: "user",
@@ -166,33 +166,27 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
     setIsLoading(true);
 
     try {
-      // If we have a pending (new) conversation, don't send the ID - let backend create it
-      // But if we already have an active conversation, use that ID
-      const conversationIdToSend = pendingConversationId ? undefined : activeConversationId || undefined;
-      
+      const conversationIdToSend = pendingConversationId
+        ? undefined
+        : activeConversationId || undefined;
+
       const response = await chatApi.sendMessage(content, conversationIdToSend);
-      
-      // Update the active conversation ID with the one from the server
+
       const serverConversationId = response.conversation_id;
       setActiveConversationId(serverConversationId);
-      
-      // If this was a new conversation, update the URL to the real ID and clear pending
+
       if (pendingConversationId) {
         setPendingConversationId(null);
-        // Replace the URL with the real conversation ID
         const newPath = `/c/${serverConversationId}`;
-        window.history.replaceState({}, '', newPath);
+        window.history.replaceState({}, "", newPath);
       }
-      
-      // Replace temp user message and add assistant's response
+
       setMessages((prev) => {
         const filteredMessages = prev.filter((m) => m.id !== tempUserMessage.id);
         return [...filteredMessages, tempUserMessage, response.message];
       });
-      
-      // Refresh conversation list to show new/updated conversation
+
       await loadConversations();
-      
     } catch (error) {
       toast.error("Failed to send message");
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id));
@@ -208,9 +202,14 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
   if (isInitializing) {
     return (
       <div className="flex h-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="flex flex-col items-center gap-6 animate-fade-in">
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-2 border-primary/20" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium tracking-wide">
+            Loading conversations...
+          </p>
         </div>
       </div>
     );
@@ -220,7 +219,7 @@ export function ChatLayout({ initialConversationId }: ChatLayoutProps) {
     <div className="flex h-full bg-background overflow-hidden relative">
       {/* Sidebar Toggle when collapsed */}
       {isSidebarCollapsed && <SidebarToggle onClick={toggleSidebar} />}
-      
+
       {/* Sidebar */}
       <Sidebar
         conversations={conversations}

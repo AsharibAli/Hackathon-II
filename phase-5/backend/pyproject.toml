@@ -24,6 +24,15 @@ dependencies = [
     "dateparser>=1.2.0",  # T009: Natural language date parsing
     "structlog>=24.1.0",  # R-010: Structured JSON logging
     "apscheduler>=3.10.0",  # R-006: Background reminder scheduling
+    # Observability dependencies (Cloud-Native Implementation)
+    "prometheus-client>=0.19.0",  # Prometheus metrics
+    "opentelemetry-api>=1.22.0",  # OpenTelemetry API
+    "opentelemetry-sdk>=1.22.0",  # OpenTelemetry SDK
+    "opentelemetry-instrumentation-fastapi>=0.43b0",  # FastAPI auto-instrumentation
+    "opentelemetry-instrumentation-httpx>=0.43b0",  # httpx instrumentation
+    "opentelemetry-instrumentation-sqlalchemy>=0.43b0",  # SQLAlchemy instrumentation
+    "opentelemetry-exporter-otlp>=1.22.0",  # OTLP exporter for Jaeger
+    "opentelemetry-exporter-jaeger>=1.21.0",  # Jaeger exporter
 ]
 
 [project.optional-dependencies]

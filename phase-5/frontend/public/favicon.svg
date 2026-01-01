@@ -1,13 +1,17 @@
 <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="24" cy="24" r="22" fill="#3B82F6" />
+  <defs>
+    <linearGradient id="faviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4847A" />
+      <stop offset="100%" stop-color="#A85751" />
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="22" fill="url(#faviconGradient)" />
   <path
     d="M14 24L21 31L34 18"
     stroke="white"
-    strokeWidth="4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
     fill="none"
   />
-  <circle cx="36" cy="12" r="2" fill="#93C5FD" opacity="0.9" />
-  <circle cx="40" cy="16" r="1.5" fill="#BFDBFE" opacity="0.7" />
 </svg>

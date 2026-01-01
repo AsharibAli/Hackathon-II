@@ -1,6 +1,10 @@
+/**
+ * Sidebar component.
+ * Neo-Editorial styled sidebar for conversation history.
+ */
 "use client";
 
-import { PanelLeftClose, PanelLeft, Plus } from "lucide-react";
+import { PanelLeftClose, PanelLeft, Plus, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationItem } from "@/components/chat/ConversationItem";
 import { ConversationSummary } from "@/types/chat";
@@ -30,52 +34,69 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-sidebar transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 overflow-hidden" : "w-[280px]"
+        "flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-out-expo",
+        isCollapsed ? "w-0 overflow-hidden" : "w-72"
       )}
     >
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between p-3 border-b border-sidebar-border">
+      <div className="flex items-center justify-between p-3 border-b border-sidebar-border/50">
         <Button
           onClick={onNewChat}
-          variant="ghost"
-          className="flex-1 justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
+          className="flex-1 justify-start gap-3 bg-primary/10 hover:bg-primary/15 text-primary border-0 shadow-none"
         >
           <Plus className="h-4 w-4" />
-          <span className="font-medium">New chat</span>
+          <span className="font-medium">New Chat</span>
         </Button>
         <Button
           onClick={onToggleCollapse}
           variant="ghost"
           size="icon"
-          className="text-sidebar-foreground hover:bg-sidebar-accent ml-2"
+          className="text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent ml-2 rounded-lg"
         >
           <PanelLeftClose className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto py-3 scrollbar-thin">
         {conversations.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sidebar-muted text-sm">
-            No conversations yet.
-            <br />
-            Start a new chat!
+          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+            <div className="h-12 w-12 rounded-full bg-sidebar-accent flex items-center justify-center mb-4">
+              <MessageSquare className="h-6 w-6 text-sidebar-muted" />
+            </div>
+            <p className="text-sm text-sidebar-muted mb-1">No conversations yet</p>
+            <p className="text-xs text-sidebar-muted/70">
+              Start a new chat to begin
+            </p>
           </div>
         ) : (
           <nav className="space-y-1 px-2">
-            {conversations.map((conversation) => (
-              <ConversationItem
+            {conversations.map((conversation, index) => (
+              <div
                 key={conversation.id}
-                conversation={conversation}
-                isActive={conversation.id === activeConversationId}
-                onSelect={() => onSelectConversation(conversation.id)}
-                onRename={(title: string) => onRenameConversation(conversation.id, title)}
-                onDelete={() => onDeleteConversation(conversation.id)}
-              />
+                className="animate-fade-up"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <ConversationItem
+                  conversation={conversation}
+                  isActive={conversation.id === activeConversationId}
+                  onSelect={() => onSelectConversation(conversation.id)}
+                  onRename={(title: string) =>
+                    onRenameConversation(conversation.id, title)
+                  }
+                  onDelete={() => onDeleteConversation(conversation.id)}
+                />
+              </div>
             ))}
           </nav>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-sidebar-border/50">
+        <p className="text-xs text-sidebar-muted/60 text-center">
+          {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
+        </p>
       </div>
     </aside>
   );
@@ -86,9 +107,9 @@ export function SidebarToggle({ onClick }: { onClick: () => void }) {
   return (
     <Button
       onClick={onClick}
-      variant="ghost"
+      variant="outline"
       size="icon"
-      className="absolute left-4 top-4 z-40 bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-accent"
+      className="absolute left-4 top-4 z-40 h-10 w-10 rounded-xl bg-background/90 backdrop-blur-sm border-border/50 shadow-soft hover:shadow-elevated hover:bg-background transition-all duration-200"
     >
       <PanelLeft className="h-4 w-4" />
     </Button>

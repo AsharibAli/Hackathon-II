@@ -620,24 +620,48 @@ class TasksService:
             session: Database session
             task_id: Task's UUID
             user_id: User's UUID for ownership verification
-            remind_at: Reminder time (ISO format or natural language)
+            remind_at: Reminder time (ISO format, natural language, or relative like "1 hour before")
 
         Returns:
             Updated task object
         """
+        from datetime import timedelta
+        import re
+
         task = TasksService.get_task_by_id(session, task_id, user_id)
 
-        result = parse_natural_date(remind_at)
-        if result.success:
-            task.remind_at = result.date
+        # Check for relative reminder patterns like "1 hour before", "30 minutes before"
+        relative_pattern = r'(\d+)\s*(hour|hours|minute|minutes|day|days)\s*before'
+        match = re.search(relative_pattern, remind_at.lower())
+
+        if match and task.due_date:
+            amount = int(match.group(1))
+            unit = match.group(2).rstrip('s')  # Remove trailing 's' for consistency
+
+            if unit == 'hour':
+                task.remind_at = task.due_date - timedelta(hours=amount)
+            elif unit == 'minute':
+                task.remind_at = task.due_date - timedelta(minutes=amount)
+            elif unit == 'day':
+                task.remind_at = task.due_date - timedelta(days=amount)
+        elif match and not task.due_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot set relative reminder - task has no due date. Please set a due date first."
+            )
         else:
-            try:
-                task.remind_at = datetime.fromisoformat(remind_at.replace("Z", "+00:00"))
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Could not parse reminder time: {remind_at}"
-                )
+            # Try natural language parsing
+            result = parse_natural_date(remind_at)
+            if result.success:
+                task.remind_at = result.date
+            else:
+                try:
+                    task.remind_at = datetime.fromisoformat(remind_at.replace("Z", "+00:00"))
+                except ValueError:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Could not parse reminder time: {remind_at}"
+                    )
 
         task.reminder_sent = False
         task.updated_at = datetime.now(timezone.utc)

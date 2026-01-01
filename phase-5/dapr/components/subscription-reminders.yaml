@@ -1,7 +1,7 @@
 # [Task]: T008
 # [Spec]: F-009 (R-009.2)
 # [Description]: Dapr subscription for reminders topic
-apiVersion: dapr.io/v2alpha1
+apiVersion: dapr.io/v1alpha1
 kind: Subscription
 metadata:
   name: reminders-subscription
@@ -9,7 +9,6 @@ metadata:
 spec:
   pubsubname: kafka-pubsub
   topic: reminders
-  routes:
-    default: /api/reminders/handle
-  scopes:
-    - notification-service
+  route: /api/reminders/handle
+scopes:
+  - notification-service

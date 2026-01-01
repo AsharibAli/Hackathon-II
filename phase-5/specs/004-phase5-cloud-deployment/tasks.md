@@ -62,7 +62,7 @@
 - [x] T023 Create EventPublisher class using httpx to call Dapr sidecar in backend/src/services/event_publisher.py
 - [x] T024 Create TaskEvent and ReminderEvent Pydantic schemas in backend/src/schemas/events.py
 - [x] T025 Create date_parser utility with natural language support in backend/src/utils/date_parser.py
-- [ ] T026 Run Alembic migration to apply Phase 5 schema changes
+- [x] T026 Run Alembic migration to apply Phase 5 schema changes
 - [x] T027 Create /health and /ready endpoints in backend/src/api/health.py
 - [x] T028 [P] Create /health and /ready endpoints in notification-service/src/api/health.py
 - [x] T029 [P] Create /health and /ready endpoints in recurring-service/src/api/health.py
@@ -82,10 +82,10 @@
 - [x] T030 [US1] Update task_service.py to handle priority on create/update in backend/src/services/tasks.py
 - [x] T031 [US1] Add priority filter parameter to GET /api/tasks endpoint in backend/src/api/tasks.py
 - [x] T032 [US1] Implement priority filtering in TasksService in backend/src/services/tasks.py
-- [ ] T033 [US1] Add set_priority MCP tool to handle "set priority of X to high" in backend/src/mcp/tools/task_tools.py
-- [ ] T034 [US1] Add filter_by_priority MCP tool to handle "show high priority tasks" in backend/src/mcp/tools/task_tools.py
-- [ ] T035 [US1] Update TaskCard component with priority color indicators in frontend/src/components/tasks/TaskCard.tsx
-- [ ] T036 [US1] Add priority filter dropdown to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
+- [x] T033 [US1] Add set_priority MCP tool to handle "set priority of X to high" in backend/src/mcp/tools.py
+- [x] T034 [US1] Add filter_by_priority MCP tool to handle "show high priority tasks" in backend/src/mcp/tools.py
+- [x] T035 [US1] Update TaskItem component with priority color indicators in frontend/src/components/tasks/TaskItem.tsx
+- [x] T036 [US1] Add priority filter dropdown to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
 
 **Checkpoint**: User Story 1 fully functional - users can set and filter by priority
 
@@ -104,11 +104,11 @@
 - [x] T039 [US2] Add DELETE /api/tasks/{id}/tags/{tag_name} endpoint to remove tag in backend/src/api/tasks.py
 - [x] T040 [US2] Add tag filter parameter to GET /api/tasks endpoint in backend/src/api/tasks.py
 - [x] T041 [US2] Implement tag filtering (case-insensitive) in TasksService in backend/src/services/tasks.py
-- [ ] T042 [US2] Add add_tag MCP tool to handle "add tag work to X" in backend/src/mcp/tools/task_tools.py
-- [ ] T043 [US2] Add filter_by_tag MCP tool to handle "show tasks tagged work" in backend/src/mcp/tools/task_tools.py
-- [ ] T044 [US2] Create TagChip component for displaying tags in frontend/src/components/tasks/TagChip.tsx
-- [ ] T045 [US2] Update TaskCard to display tags as chips in frontend/src/components/tasks/TaskCard.tsx
-- [ ] T046 [US2] Add tag filter input to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
+- [x] T042 [US2] Add add_tag MCP tool to handle "add tag work to X" in backend/src/mcp/tools.py
+- [x] T043 [US2] Add filter_by_tag MCP tool to handle "show tasks tagged work" in backend/src/mcp/tools.py
+- [x] T044 [US2] Create TagChip component for displaying tags in frontend/src/components/tasks/TagChip.tsx
+- [x] T045 [US2] Update TaskItem to display tags as chips in frontend/src/components/tasks/TaskItem.tsx
+- [x] T046 [US2] Add tag filter input to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
 
 **Checkpoint**: User Story 2 fully functional - users can manage and filter by tags
 
@@ -126,10 +126,10 @@
 - [x] T048 [US3] Add due_date parameter to task create/update endpoints in backend/src/api/tasks.py
 - [x] T049 [US3] Add overdue filter parameter to GET /api/tasks endpoint in backend/src/api/tasks.py
 - [x] T050 [US3] Implement overdue filtering logic in TasksService in backend/src/services/tasks.py
-- [ ] T051 [US3] Add set_due_date MCP tool with natural language parsing in backend/src/mcp/tools/task_tools.py
-- [ ] T052 [US3] Add show_overdue MCP tool to handle "show overdue tasks" in backend/src/mcp/tools/task_tools.py
-- [ ] T053 [US3] Update TaskCard with due date display and overdue styling in frontend/src/components/tasks/TaskCard.tsx
-- [ ] T054 [US3] Add overdue filter toggle to TaskFilters in frontend/src/components/tasks/TaskFilters.tsx
+- [x] T051 [US3] Add set_due_date MCP tool with natural language parsing in backend/src/mcp/tools.py
+- [x] T052 [US3] Add show_overdue MCP tool to handle "show overdue tasks" in backend/src/mcp/tools.py
+- [x] T053 [US3] Update TaskItem with due date display and overdue styling in frontend/src/components/tasks/TaskItem.tsx
+- [x] T054 [US3] Add overdue filter toggle to TaskFilters in frontend/src/components/tasks/TaskFilters.tsx
 
 **Checkpoint**: User Story 3 fully functional - users can set due dates and see overdue tasks
 
@@ -145,10 +145,10 @@
 
 - [x] T055 [US4] Create GET /api/tasks/search endpoint with q parameter in backend/src/api/tasks.py
 - [x] T056 [US4] Implement case-insensitive partial match search in TasksService in backend/src/services/tasks.py
-- [ ] T057 [US4] Add search MCP tool to handle "search for grocery" in backend/src/mcp/tools/task_tools.py
-- [ ] T058 [US4] Create SearchBar component for task search in frontend/src/components/tasks/SearchBar.tsx
-- [ ] T059 [US4] Add search result highlighting utility in frontend/src/lib/highlight.ts
-- [ ] T060 [US4] Integrate SearchBar into task list view in frontend/src/app/tasks/page.tsx
+- [x] T057 [US4] Add search MCP tool to handle "search for grocery" in backend/src/mcp/tools.py
+- [x] T058 [US4] Create SearchBar component for task search in frontend/src/components/tasks/SearchBar.tsx
+- [x] T059 [US4] Add search result highlighting utility in frontend/src/components/tasks/TaskItem.tsx
+- [x] T060 [US4] Integrate SearchBar into task list view in frontend/src/components/tasks/TaskList.tsx
 
 **Checkpoint**: User Story 4 fully functional - users can search tasks by keyword
 
@@ -165,10 +165,10 @@
 - [x] T061 [US5] Add sort_by and sort_order parameters to GET /api/tasks in backend/src/api/tasks.py
 - [x] T062 [US5] Implement multi-filter combination logic in TasksService in backend/src/services/tasks.py
 - [x] T063 [US5] Implement sorting by created_at, due_date, priority, title in TasksService in backend/src/services/tasks.py
-- [ ] T064 [US5] Add combined_filter MCP tool for complex queries in backend/src/mcp/tools/task_tools.py
-- [ ] T065 [US5] Add sort_tasks MCP tool for "sort by due date" in backend/src/mcp/tools/task_tools.py
-- [ ] T066 [US5] Add sort dropdown to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
-- [ ] T067 [US5] Update task list to support multiple active filters in frontend/src/app/tasks/page.tsx
+- [x] T064 [US5] Add combined_filter MCP tool for complex queries in backend/src/mcp/tools.py
+- [x] T065 [US5] Add sort_tasks MCP tool for "sort by due date" in backend/src/mcp/tools.py
+- [x] T066 [US5] Add sort dropdown to TaskFilters component in frontend/src/components/tasks/TaskFilters.tsx
+- [x] T067 [US5] Update task list to support multiple active filters in frontend/src/components/tasks/TaskList.tsx
 
 **Checkpoint**: User Story 5 fully functional - users can combine filters and sort
 
@@ -182,14 +182,14 @@
 
 ### Implementation for User Story 6
 
-- [ ] T068 [US6] Create reminder_scheduler service with background polling in backend/src/services/reminder_scheduler.py
+- [x] T068 [US6] Create reminder_scheduler service with background polling in backend/src/services/reminder_scheduler.py
 - [x] T069 [US6] Add POST /api/tasks/{id}/reminder endpoint in backend/src/api/tasks.py
-- [ ] T070 [US6] Implement check_pending_reminders job that publishes to reminders topic in backend/src/services/reminder_scheduler.py
-- [ ] T071 [US6] Add set_reminder MCP tool for "remind me about X 1 hour before" in backend/src/mcp/tools/task_tools.py
+- [x] T070 [US6] Implement check_pending_reminders job that publishes to reminders topic in backend/src/services/reminder_scheduler.py
+- [x] T071 [US6] Add set_reminder MCP tool for "remind me about X 1 hour before" in backend/src/mcp/tools.py
 - [x] T072 [US6] Create reminder event handler endpoint in notification-service/src/api/reminders.py
-- [ ] T073 [US6] Implement reminder logging with structured JSON in notification-service/src/handlers/reminder_handler.py
-- [ ] T074 [US6] Update TaskCard to show reminder time if set in frontend/src/components/tasks/TaskCard.tsx
-- [ ] T075 [US6] Integrate reminder_scheduler into FastAPI lifespan in backend/src/main.py
+- [x] T073 [US6] Implement reminder logging with structured JSON in notification-service/src/handlers/reminder_handler.py
+- [x] T074 [US6] Update TaskItem to show reminder time if set in frontend/src/components/tasks/TaskItem.tsx
+- [x] T075 [US6] Integrate reminder_scheduler into FastAPI lifespan in backend/src/main.py
 
 **Checkpoint**: User Story 6 fully functional - reminders are scheduled and notification-service receives events
 
@@ -205,13 +205,13 @@
 
 - [x] T076 [US7] Add recurrence field handling to task create/update in backend/src/services/tasks.py
 - [x] T077 [US7] Integrate event publisher on task completion in backend/src/services/tasks.py
-- [ ] T078 [US7] Add set_recurrence MCP tool for "make this repeat weekly" in backend/src/mcp/tools/task_tools.py
+- [x] T078 [US7] Add set_recurrence MCP tool for "make this repeat weekly" in backend/src/mcp/tools.py
 - [x] T079 [US7] Create task event handler endpoint in recurring-service/src/api/events.py
 - [x] T080 [US7] Create recurrence calculation service in recurring-service/src/services/recurrence.py
 - [x] T081 [US7] Create backend client to create tasks via API in recurring-service/src/services/backend_client.py
-- [ ] T082 [US7] Implement handle_task_completed logic in recurring-service/src/handlers/task_event_handler.py
-- [ ] T083 [US7] Update TaskCard to show recurrence indicator in frontend/src/components/tasks/TaskCard.tsx
-- [ ] T084 [US7] Add recurrence selector to task edit form in frontend/src/components/tasks/TaskForm.tsx
+- [x] T082 [US7] Implement handle_task_completed logic in recurring-service/src/handlers/task_completion_handler.py
+- [x] T083 [US7] Update TaskItem to show recurrence indicator in frontend/src/components/tasks/TaskItem.tsx
+- [x] T084 [US7] Add recurrence selector to task edit form in frontend/src/components/tasks/EditTaskDialog.tsx
 
 **Checkpoint**: User Story 7 fully functional - recurring tasks create next occurrence on completion
 
@@ -230,7 +230,7 @@
 - [x] T087 [US8] Integrate EventPublisher.publish() on task complete in backend/src/services/tasks.py
 - [x] T088 [US8] Integrate EventPublisher.publish() on task delete in backend/src/services/tasks.py
 - [x] T089 [US8] Add DAPR_ENABLED config flag with fallback to logging in backend/src/core/config.py
-- [ ] T090 [US8] Verify event publishing with Dapr dashboard during local testing
+- [x] T090 [US8] Verify event publishing with Dapr dashboard during local testing
 
 **Checkpoint**: User Story 8 fully functional - all task events flow through Kafka/Dapr
 
@@ -245,7 +245,7 @@
 ### Implementation for User Story 9
 
 - [x] T091 [US9] Complete notification-service FastAPI app structure in notification-service/src/main.py
-- [ ] T092 [US9] Implement CloudEvent parsing for Dapr subscription in notification-service/src/handlers/reminder_handler.py
+- [x] T092 [US9] Implement CloudEvent parsing for Dapr subscription in notification-service/src/handlers/reminder_handler.py
 - [x] T093 [US9] Configure structlog JSON logging in notification-service/src/core/logging.py
 - [x] T094 [US9] Create Dockerfile for notification-service in notification-service/Dockerfile
 - [x] T095 [US9] Create pyproject.toml with dependencies in notification-service/pyproject.toml
@@ -263,7 +263,7 @@
 ### Implementation for User Story 10
 
 - [x] T096 [US10] Complete recurring-service FastAPI app structure in recurring-service/src/main.py
-- [ ] T097 [US10] Implement CloudEvent parsing and filtering in recurring-service/src/handlers/task_event_handler.py
+- [x] T097 [US10] Implement CloudEvent parsing and filtering in recurring-service/src/handlers/task_completion_handler.py
 - [x] T098 [US10] Configure structlog JSON logging in recurring-service/src/core/logging.py
 - [x] T099 [US10] Create Dockerfile for recurring-service in recurring-service/Dockerfile
 - [x] T100 [US10] Create pyproject.toml with dependencies in recurring-service/pyproject.toml
@@ -340,13 +340,13 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [x] T125 [P] Create PHASE-5-DEPLOYMENT.md documentation in docs/PHASE-5-DEPLOYMENT.md
-- [ ] T126 [P] Update README.md with Phase 5 features and deployment instructions
-- [ ] T127 Add request correlation IDs for distributed tracing in backend/src/middleware/correlation.py
+- [x] T126 [P] Update README.md with Phase 5 features and deployment instructions
+- [x] T127 Add request correlation IDs for distributed tracing in backend/src/middleware/correlation.py
 - [x] T128 [P] Add Kubernetes liveness probe to all deployment templates
 - [x] T129 [P] Add Kubernetes readiness probe to all deployment templates
-- [ ] T130 Configure graceful shutdown handlers in all services
+- [x] T130 Configure graceful shutdown handlers in all services
 - [x] T131 Add pod disruption budget for backend in helm/charts/backend/templates/pdb.yaml
-- [ ] T132 Run quickstart.md validation to verify developer experience
+- [x] T132 Run quickstart.md validation to verify developer experience
 - [x] T133 Create end-to-end test script for full workflow validation in scripts/e2e-test.ps1
 
 ---

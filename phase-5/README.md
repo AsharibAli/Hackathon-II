@@ -1,119 +1,293 @@
-# Advanced Todo Application with CUI & GUI
+<p align="center">
+  <img src="frontend/public/favicon.svg" height="80" alt="TaskAI Logo" />
+</p>
 
-A modern, secure, multi-user todo application featuring **dual interfaces** - Conversational User Interface (CUI) and Graphical User Interface (GUI). Built with **spec-driven development** principles.
+<h1 align="center">TaskAI</h1>
 
-## Key Features
+<p align="center">
+  <strong>Advanced AI-Powered Task Management with Dual Interface</strong>
+</p>
 
-- **Dual Interface** - Choose how you work:
-  - **CUI (Conversational)**: ChatGPT-style natural language task management
-  - **GUI (Graphical)**: Traditional forms, buttons, and checkboxes
-- **Seamless Switching** - Toggle between modes anytime; your tasks stay in sync
-- **AI-Powered** - Natural language understanding via OpenAI for CUI mode
-- **Multi-User Isolation** - Each user's tasks and conversations are private
-- **Real-Time Sync** - Tasks created in one mode appear instantly in the other
+<p align="center">
+  A modern, intelligent task management application featuring both <strong>Conversational (CUI)</strong> and <strong>Graphical (GUI)</strong> interfaces. Built with cloud-native microservices architecture using FastAPI, Next.js, and MCP (Model Context Protocol) for seamless AI integration.
+</p>
 
-## Architecture
+<p align="center">
+  <a href="#features"><strong>Features</strong></a> ·
+  <a href="#tech-stack"><strong>Tech Stack</strong></a> ·
+  <a href="#getting-started"><strong>Getting Started</strong></a> ·
+  <a href="#deployment"><strong>Deployment</strong></a> ·
+  <a href="#api-reference"><strong>API Reference</strong></a>
+</p>
 
-**Monorepo Structure:**
-- `backend/` - FastAPI (Python) REST API with JWT authentication & AI agent
-- `frontend/` - Next.js 16 (TypeScript) with dual-mode interface
-- `specs/` - Feature specifications and design documents
-- `.specify/` - Spec-Kit Plus configuration and templates
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/FastAPI-0.125+-009688?style=flat-square&logo=fastapi" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/OpenAI-MCP-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI" />
+  <img src="https://img.shields.io/badge/Kubernetes-Ready-326CE5?style=flat-square&logo=kubernetes&logoColor=white" alt="Kubernetes" />
+  <img src="https://img.shields.io/badge/Dapr-Microservices-0D2192?style=flat-square&logo=dapr&logoColor=white" alt="Dapr" />
+</p>
+
+---
+
+## Overview
+
+TaskAI revolutionizes task management by offering two seamless ways to interact with your tasks:
+
+- **Chat Mode (CUI)**: Natural language task management powered by OpenAI and MCP tools
+- **Tasks Mode (GUI)**: Traditional visual interface with advanced filtering and organization
+
+Both interfaces share the same backend, ensuring real-time synchronization across modes.
+
+### Key Highlights
+
+| Feature | Description |
+|---------|-------------|
+| **Dual Interface** | Switch between AI chat and traditional GUI anytime |
+| **AI-Powered** | Natural language understanding via OpenAI with MCP tool integration |
+| **Multi-User** | Secure user isolation with JWT authentication |
+| **Real-Time Sync** | Tasks created in one mode appear instantly in the other |
+| **Cloud-Native** | Kubernetes-ready with Helm charts and Dapr microservices |
+| **Event-Driven** | Pub/sub architecture for notifications and recurring tasks |
+
+---
+
+## Features
+
+### Chat Mode (Conversational UI)
+
+Interact with your tasks using natural language:
+
+```
+You: "Add a high priority task to review the quarterly report by Friday"
+AI: "Done! I've created 'review the quarterly report' with high priority, due Friday."
+
+You: "Show me my overdue tasks"
+AI: "You have 2 overdue tasks:
+     1. Submit expense report (high priority, due Dec 20)
+     2. Reply to client email (medium priority, due Dec 22)"
+
+You: "Mark the expense report as done"
+AI: "I've marked 'Submit expense report' as completed."
+```
+
+**Available AI Tools (MCP Protocol):**
+
+| Tool | Description |
+|------|-------------|
+| `create_task` | Create new tasks with title and description |
+| `list_tasks` | View all tasks with optional filtering |
+| `complete_task` | Mark tasks as completed |
+| `delete_task` | Remove tasks permanently |
+| `update_task` | Modify task details |
+| `set_priority` | Set priority (high/medium/low) |
+| `add_tag` / `remove_tag` | Manage task tags |
+| `set_due_date` | Set or update due dates |
+| `set_reminder` | Schedule task reminders |
+| `set_recurrence` | Configure recurring patterns |
+| `search_tasks` | Full-text search across tasks |
+| `filter_by_priority` | Filter by priority level |
+| `filter_by_tag` | Filter by tag name |
+| `show_overdue` | List all overdue tasks |
+| `combined_filter` | Multi-criteria filtering |
+| `sort_tasks` | Sort by various fields |
+
+### Tasks Mode (Graphical UI)
+
+Traditional visual interface with powerful features:
+
+- **Task Creation**: Form with title, description, priority, tags, due date
+- **Priority System**: High (red), Medium (yellow), Low (green) color coding
+- **Tag Management**: Create, assign, and filter by custom tags
+- **Due Dates**: Date picker with overdue highlighting
+- **Reminders**: Schedule notifications for important tasks
+- **Recurrence**: Daily, weekly, monthly recurring tasks
+- **Advanced Search**: Full-text search with result highlighting
+- **Smart Filtering**: Filter by priority, status, tags, overdue
+- **Flexible Sorting**: Sort by due date, priority, created date
+
+### Authentication & Security
+
+- **JWT Authentication**: Secure token-based auth with 24-hour expiration
+- **Password Hashing**: bcrypt with cost factor 12
+- **User Isolation**: Database-level multi-tenant isolation
+- **Secure Sessions**: HTTP-only cookies for token storage
+
+---
 
 ## Tech Stack
 
 ### Backend
-- **Framework:** FastAPI 0.125+
-- **ORM:** SQLModel 0.0.14+
-- **Database:** Neon Serverless PostgreSQL
-- **Authentication:** JWT (python-jose)
-- **AI:** OpenAI Agents SDK + MCP Tools
-- **Password Hashing:** bcrypt (passlib)
-- **Package Manager:** uv
+
+| Technology | Purpose |
+|------------|---------|
+| **FastAPI 0.125+** | High-performance Python web framework |
+| **SQLModel 0.0.14+** | Type-safe ORM combining SQLAlchemy + Pydantic |
+| **Neon PostgreSQL** | Serverless PostgreSQL database |
+| **OpenAI SDK** | AI/LLM integration for chat functionality |
+| **MCP Protocol** | Model Context Protocol for tool invocation |
+| **Alembic** | Database migrations |
+| **python-jose** | JWT token handling |
+| **passlib + bcrypt** | Secure password hashing |
+| **uv** | Fast Python package manager |
 
 ### Frontend
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript 5.x (strict mode)
-- **Styling:** Tailwind CSS 4
-- **UI Components:** shadcn/ui (Radix UI)
-- **Notifications:** Sonner
-- **Package Manager:** pnpm
 
-## Features
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 16** | React framework with App Router |
+| **TypeScript 5.x** | Type-safe JavaScript (strict mode) |
+| **Tailwind CSS 4** | Utility-first CSS framework |
+| **shadcn/ui** | Accessible UI components (Radix UI) |
+| **Lucide Icons** | Beautiful icon library |
+| **next-themes** | Dark/light theme support |
+| **Sonner** | Toast notifications |
+| **pnpm** | Fast, efficient package manager |
 
-### CUI Mode (Conversational User Interface)
-- Natural language task creation ("Add a task to buy groceries")
-- Ask to see your tasks ("Show me my tasks")
-- Complete tasks via chat ("Mark buy groceries as done")
-- Update and delete tasks conversationally
-- Conversation history persistence
-- Multi-turn context awareness
+### Infrastructure
 
-### GUI Mode (Graphical User Interface)
-- Task creation form with title and description
-- Task list with checkboxes for completion
-- Edit tasks via dialog modal
-- Delete tasks with confirmation
-- Visual completion status (strikethrough)
-- Loading states and error handling
+| Technology | Purpose |
+|------------|---------|
+| **Docker** | Containerization |
+| **Kubernetes** | Container orchestration |
+| **Helm** | Kubernetes package manager |
+| **Dapr** | Microservices runtime (pub/sub, state) |
+| **Redis** | State store for Dapr |
+| **Minikube** | Local Kubernetes development |
 
-### Shared Features
-- JWT-based authentication
-- Secure registration and login
-- User profile management
-- Responsive design (mobile + desktop)
-- Toast notifications for feedback
-- Error boundaries for stability
+---
 
-## Prerequisites
+## Architecture
 
-- **Python 3.11+** (for backend)
-- **Node.js 18+** (for frontend)
-- **uv** (Python package manager): `pip install uv`
-- **pnpm** (Node package manager): `npm install -g pnpm`
-- **Neon PostgreSQL account**: Sign up at https://neon.tech
-- **OpenAI API Key**: For CUI mode AI functionality
-
-## Deployment Options
-
-### Option 1: Local Development
-See [specs/003-combined-cui-gui/quickstart.md](specs/003-combined-cui-gui/quickstart.md) for detailed setup instructions.
-
-### Option 2: Docker Compose
-Quick local deployment with all services containerized:
-
-```bash
-# Copy environment file
-cp .env.example .env
-# Edit .env with your OPENAI_API_KEY and JWT_SECRET
-
-# Start all services
-docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
+```
+                              ┌─────────────────────────────────────────┐
+                              │              Load Balancer              │
+                              └──────────────────┬──────────────────────┘
+                                                 │
+                    ┌────────────────────────────┼────────────────────────────┐
+                    │                            │                            │
+                    ▼                            ▼                            ▼
+         ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
+         │     Frontend     │       │     Backend      │       │    API Docs      │
+         │    (Next.js)     │──────▶│    (FastAPI)     │       │    (Swagger)     │
+         │   Port: 3000     │       │   Port: 8000     │       │   /docs /redoc   │
+         └──────────────────┘       └────────┬─────────┘       └──────────────────┘
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    │                        │                        │
+                    ▼                        ▼                        ▼
+         ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+         │   PostgreSQL     │    │   OpenAI API     │    │   Dapr Sidecar   │
+         │     (Neon)       │    │    (MCP Tools)   │    │    (Pub/Sub)     │
+         └──────────────────┘    └──────────────────┘    └────────┬─────────┘
+                                                                  │
+                         ┌────────────────────────────────────────┼────────────────────────────────────────┐
+                         │                                        │                                        │
+                         ▼                                        ▼                                        ▼
+              ┌──────────────────┐                     ┌──────────────────┐                     ┌──────────────────┐
+              │  Notification    │                     │    Recurring     │                     │      Redis       │
+              │    Service       │                     │     Service      │                     │  (State Store)   │
+              │  (Reminders)     │                     │ (Task Scheduler) │                     │                  │
+              └──────────────────┘                     └──────────────────┘                     └──────────────────┘
 ```
 
-### Option 3: Kubernetes (Minikube)
-Production-like deployment using Helm charts:
+### Monorepo Structure
 
-```bash
-# Deploy to Minikube (Linux/Mac)
-./scripts/deploy-minikube.sh --openai-key "sk-your-key"
-
-# Deploy to Minikube (Windows PowerShell)
-.\scripts\deploy-minikube.ps1 -OpenAIKey "sk-your-key"
-
-# Verify deployment
-./scripts/verify-deployment.sh  # or .ps1 for Windows
+```
+phase-5/
+├── backend/                    # FastAPI REST API
+│   ├── src/
+│   │   ├── api/               # Route handlers (auth, tasks, chat, conversations)
+│   │   ├── models/            # SQLModel entities (User, Task, Tag, Conversation, Message)
+│   │   ├── services/          # Business logic + reminder scheduler
+│   │   ├── mcp/               # AI agent and MCP tool definitions
+│   │   ├── core/              # Config, security, database setup
+│   │   └── middleware/        # Logging, error handling, correlation ID
+│   ├── alembic/               # Database migrations
+│   ├── Dockerfile
+│   └── pyproject.toml
+│
+├── frontend/                   # Next.js Web Application
+│   ├── src/
+│   │   ├── app/               # App Router pages (home, auth, dashboard)
+│   │   ├── components/
+│   │   │   ├── chat/          # CUI components (ChatLayout, Sidebar, Messages)
+│   │   │   ├── tasks/         # GUI components (TaskList, TaskForm, Filters)
+│   │   │   ├── navigation/    # Header, mode toggle
+│   │   │   └── ui/            # shadcn/ui components
+│   │   ├── lib/               # API client, utilities
+│   │   └── types/             # TypeScript interfaces
+│   ├── Dockerfile
+│   └── package.json
+│
+├── notification-service/       # Reminder Microservice
+│   ├── src/
+│   │   ├── api/               # Health and reminder endpoints
+│   │   ├── handlers/          # CloudEvent handlers
+│   │   └── core/              # Config, logging
+│   └── Dockerfile
+│
+├── recurring-service/          # Recurring Tasks Microservice
+│   ├── src/
+│   │   ├── api/               # Health and event endpoints
+│   │   ├── handlers/          # Task completion handlers
+│   │   ├── services/          # Recurrence calculation
+│   │   └── core/              # Config, logging
+│   └── Dockerfile
+│
+├── dapr/                       # Dapr Configuration
+│   └── components/            # Pub/sub, state store configs
+│
+├── helm/                       # Kubernetes Deployment
+│   └── taskai/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│
+├── scripts/                    # Deployment Scripts
+│   ├── deploy-minikube.sh     # Linux/Mac deployment
+│   ├── deploy-minikube.ps1    # Windows deployment
+│   └── verify-deployment.*    # Verification scripts
+│
+├── specs/                      # Feature Specifications (SDD)
+│   ├── 001-todo-app-baseline/
+│   ├── 002-todo-ai-chatbot/
+│   ├── 003-combined-cui-gui/
+│   └── 004-phase5-cloud-deployment/
+│
+├── docker-compose.yml          # Local Docker deployment
+├── .env.example                # Environment template
+└── .specify/                   # Spec-Kit Plus configuration
 ```
 
-See [Kubernetes Deployment](#kubernetes-deployment) section for details.
+---
 
-## Quick Start
+## Getting Started
 
-### Backend Setup
+### Prerequisites
+
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| **Python** | 3.11+ | Backend runtime |
+| **Node.js** | 18+ | Frontend runtime |
+| **uv** | Latest | Python package manager |
+| **pnpm** | Latest | Node package manager |
+| **PostgreSQL** | - | Neon serverless account |
+| **OpenAI API Key** | - | AI functionality |
+
+### Installation
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/AsharibAli/taskai.git
+cd taskai
+```
+
+#### 2. Backend Setup
 
 ```bash
 cd backend
@@ -123,27 +297,41 @@ uv sync
 
 # Configure environment
 cp .env.example .env
-# Edit .env with:
-# - DATABASE_URL (Neon PostgreSQL connection string)
-# - JWT_SECRET (secure random string)
-# - OPENAI_API_KEY (your OpenAI API key)
+```
 
-# Run database migrations
+Edit `.env` with your credentials:
+
+```env
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+
+# Security
+JWT_SECRET=your-super-secure-random-string-min-32-chars
+
+# OpenAI
+OPENAI_API_KEY=sk-your-openai-api-key
+OPENAI_MODEL=gpt-4.1-2025-04-14
+```
+
+Run migrations and start the server:
+
+```bash
+# Apply database migrations
 uv run alembic upgrade head
 
 # Start development server
 uv run uvicorn src.main:app --reload --port 8000
 ```
 
-Backend will be available at http://localhost:8000
-API docs at http://localhost:8000/docs
+Backend available at: `http://localhost:8000`
+API docs at: `http://localhost:8000/docs`
 
-### Frontend Setup
+#### 3. Frontend Setup
 
 ```bash
 cd frontend
 
-# Install dependencies with pnpm
+# Install dependencies
 pnpm install
 
 # Configure environment
@@ -153,149 +341,53 @@ echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 pnpm dev
 ```
 
-Frontend will be available at http://localhost:3000
+Frontend available at: `http://localhost:3000`
 
-## Project Structure
+---
 
-```
-phase-4/
-├── backend/
-│   ├── src/
-│   │   ├── models/          # SQLModel entities (User, Task, Conversation, Message)
-│   │   ├── services/        # Business logic
-│   │   ├── api/             # FastAPI endpoints (auth, tasks, chat, conversations)
-│   │   ├── mcp/             # AI agent and MCP tools
-│   │   ├── core/            # Configuration, security, database
-│   │   └── middleware/      # Logging, error handling
-│   ├── alembic/             # Database migrations
-│   ├── Dockerfile           # Backend container image
-│   └── pyproject.toml       # uv dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── app/             # Next.js App Router pages
-│   │   ├── components/
-│   │   │   ├── chat/        # CUI components (ChatLayout, Sidebar, etc.)
-│   │   │   ├── tasks/       # GUI components (TaskList, TaskForm, etc.)
-│   │   │   ├── navigation/  # Mode toggle, app header
-│   │   │   └── ui/          # shadcn/ui components
-│   │   ├── lib/             # API client, utilities
-│   │   └── types/           # TypeScript interfaces
-│   ├── Dockerfile           # Frontend container image
-│   └── package.json         # pnpm dependencies
-├── helm/
-│   └── taskai/              # Helm chart for Kubernetes deployment
-│       ├── Chart.yaml       # Chart metadata
-│       ├── values.yaml      # Configuration values
-│       └── templates/       # Kubernetes manifests
-├── scripts/
-│   ├── deploy-minikube.sh   # Minikube deployment (Linux/Mac)
-│   ├── deploy-minikube.ps1  # Minikube deployment (Windows)
-│   ├── verify-deployment.sh # Deployment verification (Linux/Mac)
-│   └── verify-deployment.ps1# Deployment verification (Windows)
-├── specs/
-│   ├── 001-todo-app-baseline/    # Phase-2 baseline spec
-│   ├── 002-todo-ai-chatbot/      # Phase-3 AI chatbot spec
-│   └── 003-combined-cui-gui/     # Phase-4 combined CUI+GUI spec
-├── docker-compose.yml       # Docker Compose for local deployment
-├── .env.example             # Environment variables template
-└── .specify/                # Spec-Kit Plus configuration
+## Deployment
+
+### Option 1: Docker Compose (Local)
+
+Quick deployment with all services containerized:
+
+```bash
+# Configure environment
+cp .env.example .env
+# Edit .env with your OPENAI_API_KEY and JWT_SECRET
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
 ```
 
-## How It Works
+| Service | Port | URL |
+|---------|------|-----|
+| Frontend | 3000 | http://localhost:3000 |
+| Backend | 8000 | http://localhost:8000 |
+| PostgreSQL | 5432 | (internal) |
 
-### Dual Mode Navigation
-1. Log in to see the main application
-2. Use the **Chat** / **Tasks** toggle in the header
-3. Switch modes anytime - your data syncs automatically
+### Option 2: Kubernetes (Minikube)
 
-### CUI Mode
-```
-You: "Add a task to buy groceries"
-AI: "I've created a new task 'buy groceries' for you!"
-
-You: "Show me my tasks"
-AI: "You have 3 tasks:
-     1. buy groceries (pending)
-     2. call mom (completed)
-     3. finish report (pending)"
-
-You: "Mark buy groceries as done"
-AI: "Done! I've marked 'buy groceries' as completed."
-```
-
-### GUI Mode
-- Click the "Tasks" tab to switch
-- Use the form to add new tasks
-- Check the checkbox to complete tasks
-- Click edit/delete icons for more actions
-
-## API Documentation
-
-Once the backend is running, access interactive API documentation:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-### Key Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Register new user |
-| `/api/auth/login` | POST | Login user |
-| `/api/tasks` | GET | Get all tasks (GUI) |
-| `/api/tasks` | POST | Create task (GUI) |
-| `/api/chat/chat` | POST | Send chat message (CUI) |
-| `/api/conversations` | GET | List conversations (CUI) |
-
-## Security
-
-- JWT tokens for authentication (24-hour expiration)
-- Bcrypt password hashing (cost factor 12)
-- Multi-user isolation at database and API layers
-- HTTPS required in production
-- No secrets in code (all via environment variables)
-- MCP tools enforce user_id from JWT (never from user input)
-
-## Constitution & Principles
-
-This project follows strict **Spec-Driven Development (SDD)** principles:
-
-1. **Spec-First Development**: No code before approved specifications
-2. **Single Code Authority**: Only Claude Code writes implementation
-3. **Separation of Concerns**: Clear backend/frontend/CUI/GUI boundaries
-4. **Authentication Enforcement**: JWT on all protected endpoints
-5. **Stateless Server**: No in-memory state; all data in PostgreSQL
-6. **Tool-Driven AI**: CUI operations only through MCP tools
-
-See `.specify/memory/constitution.md` for complete governance rules.
-
-## Documentation
-
-- **Combined Feature Spec**: `specs/003-combined-cui-gui/spec.md`
-- **Implementation Plan**: `specs/003-combined-cui-gui/plan.md`
-- **Task Breakdown**: `specs/003-combined-cui-gui/tasks.md`
-- **Data Model**: `specs/003-combined-cui-gui/data-model.md`
-- **Setup Guide**: `specs/003-combined-cui-gui/quickstart.md`
-
-## Kubernetes Deployment
-
-### Prerequisites
-
-- **minikube** - Local Kubernetes cluster
-- **kubectl** - Kubernetes CLI
-- **helm** - Kubernetes package manager
-- **docker** - Container runtime
-
-### Quick Deploy
+Production-like deployment using Helm:
 
 ```bash
 # Linux/Mac
-./scripts/deploy-minikube.sh --openai-key "sk-your-key"
+./scripts/deploy-minikube.sh
 
 # Windows PowerShell
-.\scripts\deploy-minikube.ps1 -OpenAIKey "sk-your-key"
+.\scripts\deploy-minikube.ps1
+
+# Verify deployment
+kubectl get pods -n taskai
 ```
 
-### Manual Deployment
+#### Manual Kubernetes Deployment
 
 ```bash
 # Start Minikube
@@ -303,6 +395,7 @@ minikube start --cpus=4 --memory=8192
 
 # Configure Docker to use Minikube's daemon
 eval $(minikube docker-env)  # Linux/Mac
+# OR
 minikube docker-env --shell powershell | Invoke-Expression  # Windows
 
 # Build images
@@ -316,11 +409,9 @@ helm upgrade --install taskai ./helm/taskai \
   --create-namespace \
   --set secrets.openaiApiKey="sk-your-key"
 
-# Verify deployment
-kubectl get pods -n taskai
+# Get Minikube IP
+minikube ip
 ```
-
-### Access URLs
 
 | Service | URL |
 |---------|-----|
@@ -328,41 +419,14 @@ kubectl get pods -n taskai
 | Backend API | http://\<minikube-ip\>:30800 |
 | Swagger Docs | http://\<minikube-ip\>:30800/docs |
 
-Get Minikube IP: `minikube ip`
-
-Or use `minikube tunnel` for localhost access.
-
-### Helm Values
-
-Key configuration options in `helm/taskai/values.yaml`:
-
-```yaml
-secrets:
-  jwtSecret: "your-jwt-secret"
-  openaiApiKey: "sk-your-key"
-
-frontend:
-  service:
-    nodePort: 30300
-
-backend:
-  service:
-    nodePort: 30800
-  env:
-    OPENAI_MODEL: "gpt-4.1-2025-04-14"
-```
-
-### Useful Commands
+#### Useful Kubernetes Commands
 
 ```bash
-# View pods
+# View all pods
 kubectl get pods -n taskai
 
 # View logs
 kubectl logs -f deploy/taskai-backend -n taskai
-
-# Describe pod
-kubectl describe pod <pod-name> -n taskai
 
 # Open Minikube dashboard
 minikube dashboard
@@ -372,42 +436,167 @@ helm uninstall taskai -n taskai
 kubectl delete namespace taskai
 ```
 
-## Docker Compose
+---
 
-For local development without Kubernetes:
+## API Reference
+
+### Authentication
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | Register new user |
+| `/api/auth/login` | POST | Login and get JWT token |
+| `/api/auth/me` | GET | Get current user profile |
+
+### Tasks
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/tasks` | GET | List tasks (with filters) |
+| `/api/tasks` | POST | Create new task |
+| `/api/tasks/{id}` | GET | Get task by ID |
+| `/api/tasks/{id}` | PUT | Update task |
+| `/api/tasks/{id}` | DELETE | Delete task |
+| `/api/tasks/{id}/tags` | POST | Add tag to task |
+| `/api/tasks/{id}/tags/{tag}` | DELETE | Remove tag |
+| `/api/tasks/search` | GET | Full-text search |
+
+#### Task Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `priority` | string | Filter: high, medium, low |
+| `is_completed` | boolean | Filter: true, false |
+| `tag` | string | Filter by tag name |
+| `overdue` | boolean | Show only overdue tasks |
+| `sort_by` | string | Sort: due_date, priority, created_at |
+| `sort_order` | string | Order: asc, desc |
+
+### Chat (CUI)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat/chat` | POST | Send message to AI |
+| `/api/conversations` | GET | List conversations |
+| `/api/conversations` | POST | Create conversation |
+| `/api/conversations/{id}` | GET | Get conversation with messages |
+| `/api/conversations/{id}` | DELETE | Delete conversation |
+
+### Interactive Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+---
+
+## Environment Variables
+
+### Backend (.env)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret for JWT signing (min 32 chars) |
+| `OPENAI_API_KEY` | Yes | OpenAI API key |
+| `OPENAI_MODEL` | No | Model name (default: gpt-4.1-2025-04-14) |
+| `CORS_ORIGINS` | No | Allowed origins (default: localhost) |
+
+### Frontend (.env.local)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API URL |
+
+---
+
+## Development
+
+### Spec-Driven Development (SDD)
+
+This project follows strict SDD principles using Spec-Kit Plus:
+
+1. **Specification First**: No code before approved specs
+2. **Implementation Planning**: Architecture decisions documented
+3. **Task Breakdown**: Testable tasks with acceptance criteria
+4. **Controlled Implementation**: Changes via defined workflow
+
+### Available Commands
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-
-# Stop and remove volumes
-docker-compose down -v
+# Specification
+/sp.specify    # Create feature specification
+/sp.clarify    # Clarify underspecified areas
+/sp.plan       # Create implementation plan
+/sp.tasks      # Generate task breakdown
+/sp.implement  # Execute implementation
+/sp.analyze    # Cross-artifact analysis
+/sp.adr        # Create Architecture Decision Record
 ```
 
-### Services
+### Project Specifications
 
-| Service | Port | Description |
-|---------|------|-------------|
-| frontend | 3000 | Next.js web application |
-| backend | 8000 | FastAPI REST API |
-| postgres | 5432 | PostgreSQL database |
+| Spec | Description |
+|------|-------------|
+| `001-todo-app-baseline` | Core todo functionality |
+| `002-todo-ai-chatbot` | AI chat integration |
+| `003-combined-cui-gui` | Dual interface |
+| `004-phase5-cloud-deployment` | Cloud infrastructure |
 
-## License
+---
 
-[Specify your license here]
+## Security
+
+### Authentication Flow
+
+1. User registers with email/password
+2. Password hashed with bcrypt (cost 12)
+3. JWT token issued on login (24h expiry)
+4. Token validated on each protected request
+5. User ID extracted from JWT for data isolation
+
+### Security Measures
+
+- **No secrets in code**: All via environment variables
+- **HTTPS in production**: SSL/TLS enforced
+- **User isolation**: Database-level tenant separation
+- **Input validation**: Pydantic schemas on all endpoints
+- **MCP tool safety**: user_id always from JWT, never user input
+
+---
 
 ## Contributing
 
-This project uses Spec-Kit Plus for spec-driven development. All contributions must:
-1. Start with a specification (`/sp.specify`)
-2. Create an implementation plan (`/sp.plan`)
-3. Generate tasks (`/sp.tasks`)
-4. Only then implement (`/sp.implement`)
+Contributions must follow the SDD workflow:
+
+1. **Fork** the repository
+2. **Create specification** (`/sp.specify`)
+3. **Plan implementation** (`/sp.plan`)
+4. **Generate tasks** (`/sp.tasks`)
+5. **Implement changes** (`/sp.implement`)
+6. **Submit PR** with spec artifacts
 
 See `.specify/` for templates and guidelines.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [Next.js](https://nextjs.org/) - React framework for production
+- [OpenAI](https://openai.com/) - AI/LLM capabilities
+- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
+- [shadcn/ui](https://ui.shadcn.com/) - Beautiful UI components
+- [Dapr](https://dapr.io/) - Microservices runtime
+- [Spec-Kit Plus](https://github.com/spec-kit/spec-kit-plus) - SDD framework
+
+---
+
+<p align="center">
+  Built with Spec-Driven Development
+</p>

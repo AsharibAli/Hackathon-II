@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from .schemas import TaskEvent, TaskEventData, ReminderEvent
-from ...models.task import Task
+from models.task import Task
 
 logger = logging.getLogger(__name__)
 

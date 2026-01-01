@@ -1,0 +1,52 @@
+# [Task]: Cloud-Native Implementation
+# [Description]: Observability stack Helm chart for TaskAI
+apiVersion: v2
+name: observability
+description: Observability stack for TaskAI (Prometheus, Grafana, Jaeger, Loki)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - observability
+  - prometheus
+  - grafana
+  - jaeger
+  - loki
+  - monitoring
+  - tracing
+  - logging
+
+maintainers:
+  - name: TaskAI Team
+
+dependencies:
+  # Prometheus - Metrics collection
+  - name: prometheus
+    version: "25.8.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: prometheus.enabled
+
+  # Grafana - Visualization
+  - name: grafana
+    version: "7.0.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: grafana.enabled
+
+  # Jaeger - Distributed tracing
+  - name: jaeger
+    version: "0.71.0"
+    repository: "https://jaegertracing.github.io/helm-charts"
+    condition: jaeger.enabled
+
+  # Loki - Log aggregation
+  - name: loki
+    version: "5.38.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: loki.enabled
+
+  # Promtail - Log shipper
+  - name: promtail
+    version: "6.15.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: promtail.enabled

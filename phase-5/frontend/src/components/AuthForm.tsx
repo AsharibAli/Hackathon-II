@@ -1,19 +1,35 @@
 /**
- * Reusable authentication form component.
- * Handles both login and registration with validation and Google OAuth.
+ * AuthForm component.
+ * Neo-Editorial styled authentication form with login/register modes.
  */
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import {
+  GoogleOAuthProvider,
+  GoogleLogin,
+  CredentialResponse,
+} from "@react-oauth/google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi, ApiError } from "@/lib/api";
 import { toast } from "sonner";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Sparkles,
+  UserPlus,
+  LogIn,
+  AlertCircle,
+} from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
+import { cn } from "@/lib/utils";
 
 interface AuthFormProps {
   mode: "login" | "register";
@@ -27,17 +43,24 @@ function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
 
   const isLogin = mode === "login";
   const title = isLogin ? "Welcome Back" : "Create Account";
   const description = isLogin
-    ? "Enter your credentials to access your tasks"
-    : "Enter your details to create a new account";
-  const submitText = isLogin ? "Sign In" : "Sign Up";
-  const switchText = isLogin ? "Don't have an account?" : "Already have an account?";
+    ? "Sign in to continue managing your tasks"
+    : "Start your productivity journey today";
+  const submitText = isLogin ? "Sign In" : "Create Account";
+  const switchText = isLogin
+    ? "Don't have an account?"
+    : "Already have an account?";
   const switchLink = isLogin ? "/register" : "/login";
   const switchLinkText = isLogin ? "Sign up" : "Sign in";
 
@@ -79,7 +102,6 @@ function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
         toast.success("Account created successfully!");
       }
 
-      // Redirect to home page
       router.push("/");
       router.refresh();
     } catch (error) {
@@ -96,7 +118,6 @@ function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
     }
   };
 
-  // Handle Google OAuth success using the credential (JWT) response
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
       setErrors({ general: "Failed to get Google credentials" });
@@ -108,19 +129,20 @@ function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
     setErrors({});
 
     try {
-      // Decode the JWT credential to get user info
-      // The credential is a JWT token that contains user information
-      const base64Url: any = credentialResponse.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const parts = credentialResponse.credential.split(".");
+      const base64Url = parts[1];
+      if (!base64Url) {
+        throw new Error("Invalid JWT token format");
+      }
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(
         atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
       );
       const userInfo = JSON.parse(jsonPayload);
 
-      // Call our backend OAuth endpoint
       await authApi.oauthLogin({
         email: userInfo.email,
         provider: "google",
@@ -153,109 +175,207 @@ function AuthFormContent({ mode, googleEnabled }: AuthFormContentProps) {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-2 text-center">
-        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-        <CardDescription className="text-base">{description}</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-5">
-        {/* Google Sign-In Button - only render if Google OAuth is enabled */}
-        {googleEnabled && (
-          <>
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                theme="outline"
-                size="large"
-                width="100%"
-                text="continue_with"
-                shape="rectangular"
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Email/Password Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading || isGoogleLoading}
-              aria-invalid={!!errors.email}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email}</p>
-            )}
+    <div className="w-full max-w-md mx-auto">
+      {/* Card */}
+      <div className="rounded-2xl border border-border/60 bg-card shadow-elevated overflow-hidden">
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6 text-center border-b border-border/50 bg-muted/20">
+          <div className="mx-auto mb-6">
+            <Logo size="lg" />
           </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-              {isLogin && (
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              )}
-            </div>
-            <Input
-              id="password"
-              type="password"
-              placeholder={isLogin ? "Enter password" : "Min 8 characters"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading || isGoogleLoading}
-              aria-invalid={!!errors.password}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">{errors.password}</p>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            {isLogin ? (
+              <LogIn className="h-5 w-5 text-primary" />
+            ) : (
+              <UserPlus className="h-5 w-5 text-primary" />
             )}
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              {title}
+            </h1>
           </div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
 
-          {errors.general && (
-            <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
-              {errors.general}
-            </div>
+        {/* Content */}
+        <div className="p-8 space-y-6">
+          {/* Google Sign-In Button */}
+          {googleEnabled && (
+            <>
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  width="100%"
+                  text="continue_with"
+                  shape="rectangular"
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border/50" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-3 text-muted-foreground">
+                    Or continue with email
+                  </span>
+                </div>
+              </div>
+            </>
           )}
 
-          <Button type="submit" className="w-full" size="lg" disabled={isLoading || isGoogleLoading}>
-            {isLoading ? "Loading..." : submitText}
-          </Button>
-        </form>
-      </CardContent>
+          {/* Email/Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.email}
+                  className={cn(
+                    "h-12 pl-11 rounded-xl bg-background/80",
+                    errors.email && "border-destructive focus-visible:ring-destructive/30"
+                  )}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.email}
+                </p>
+              )}
+            </div>
 
-      <CardFooter className="flex flex-col gap-4">
-        <p className="text-sm text-center text-muted-foreground">
-          {switchText}{" "}
-          <Link href={switchLink} className="font-medium text-primary hover:underline">
-            {switchLinkText}
+            {/* Password */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                {isLogin && (
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={isLogin ? "Enter password" : "Min 8 characters"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.password}
+                  className={cn(
+                    "h-12 pl-11 pr-11 rounded-xl bg-background/80",
+                    errors.password && "border-destructive focus-visible:ring-destructive/30"
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Error message */}
+            {errors.general && (
+              <div className="flex items-start gap-3 p-4 text-sm text-destructive bg-destructive/10 rounded-xl border border-destructive/20">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                {errors.general}
+              </div>
+            )}
+
+            {/* Submit button */}
+            <Button
+              type="submit"
+              className="w-full h-12 rounded-xl gap-2 shadow-soft hover:shadow-elevated transition-all"
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isLoading ? (
+                <>
+                  <div className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                  {isLogin ? "Signing in..." : "Creating account..."}
+                </>
+              ) : (
+                <>
+                  {isLogin ? (
+                    <ArrowRight className="h-4 w-4" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {submitText}
+                </>
+              )}
+            </Button>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-5 bg-muted/20 border-t border-border/50 text-center">
+          <p className="text-sm text-muted-foreground">
+            {switchText}{" "}
+            <Link
+              href={switchLink}
+              className="font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              {switchLinkText}
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* Terms */}
+      {!isLogin && (
+        <p className="mt-6 text-xs text-center text-muted-foreground/60">
+          By creating an account, you agree to our{" "}
+          <Link href="#" className="underline hover:text-muted-foreground">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="#" className="underline hover:text-muted-foreground">
+            Privacy Policy
           </Link>
         </p>
-      </CardFooter>
-    </Card>
+      )}
+    </div>
   );
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
-  // If no Google Client ID is configured, render without Google OAuth
   if (!googleClientId) {
     return <AuthFormContent mode={mode} googleEnabled={false} />;
   }

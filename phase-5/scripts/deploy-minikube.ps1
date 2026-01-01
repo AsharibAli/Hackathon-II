@@ -27,6 +27,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Add common tool paths to PATH (Dapr, etc.)
+$daprPath = "C:\dapr"
+if (Test-Path $daprPath) {
+    $env:PATH = "$daprPath;$env:PATH"
+}
+
 # Configuration
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectDir = Split-Path -Parent $ScriptDir
@@ -127,27 +133,47 @@ function Install-Kafka {
 
     Write-Info "Installing Strimzi Kafka Operator..."
 
-    # Check if Strimzi namespace exists
-    $strimziNs = kubectl get namespace strimzi-system --ignore-not-found -o name 2>&1
-    if (-not $strimziNs) {
-        kubectl create namespace strimzi-system
+    # Create kafka namespace first (Strimzi will watch this)
+    $kafkaNs = kubectl get namespace kafka --ignore-not-found -o name 2>&1
+    if (-not $kafkaNs) {
+        kubectl create namespace kafka
     }
 
-    # Install Strimzi operator
-    kubectl apply -f "https://strimzi.io/install/latest?namespace=strimzi-system" -n strimzi-system
+    # Install Strimzi operator directly into kafka namespace (simpler setup)
+    kubectl apply -f "https://strimzi.io/install/latest?namespace=kafka" -n kafka
 
     Write-Info "Waiting for Strimzi operator to be ready..."
-    kubectl wait --for=condition=available deployment/strimzi-cluster-operator -n strimzi-system --timeout=300s
+    kubectl wait --for=condition=available deployment/strimzi-cluster-operator -n kafka --timeout=300s
 
-    # Deploy Kafka cluster
+    # Deploy Kafka cluster (namespace already created by Strimzi install)
     Write-Info "Deploying Kafka cluster..."
+    # Apply only the Kafka and KafkaTopic resources, not the namespace
     kubectl apply -f "$ProjectDir/infra/minikube/kafka-cluster.yaml"
 
     Write-Info "Waiting for Kafka cluster to be ready (this may take a few minutes)..."
     Start-Sleep -Seconds 30
-    kubectl wait kafka/kafka-cluster --for=condition=Ready --timeout=600s -n kafka
 
-    Write-Success "Kafka cluster deployed"
+    # Wait with retry logic
+    $retryCount = 0
+    $maxRetries = 20
+    while ($retryCount -lt $maxRetries) {
+        $kafkaStatus = kubectl get kafka kafka-cluster -n kafka -o json 2>&1 | ConvertFrom-Json -ErrorAction SilentlyContinue
+        if ($kafkaStatus -and $kafkaStatus.status -and $kafkaStatus.status.conditions) {
+            $readyCondition = $kafkaStatus.status.conditions | Where-Object { $_.type -eq "Ready" }
+            if ($readyCondition -and $readyCondition.status -eq "True") {
+                break
+            }
+        }
+        Write-Info "Kafka not ready yet, waiting... (attempt $($retryCount + 1)/$maxRetries)"
+        Start-Sleep -Seconds 30
+        $retryCount++
+    }
+
+    if ($retryCount -eq $maxRetries) {
+        Write-Warning "Kafka cluster taking longer than expected. Continuing with deployment..."
+    } else {
+        Write-Success "Kafka cluster deployed"
+    }
 }
 
 # Install Dapr
@@ -159,10 +185,15 @@ function Install-Dapr {
 
     Write-Info "Installing Dapr..."
 
-    # Check if Dapr is already installed
-    $daprInstalled = dapr status -k 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    # Check if Dapr is already installed by checking for dapr-system namespace
+    $daprNs = kubectl get namespace dapr-system --ignore-not-found -o name 2>&1
+    if (-not $daprNs) {
+        Write-Info "Initializing Dapr in Kubernetes..."
         dapr init -k --wait
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to initialize Dapr"
+            exit 1
+        }
     } else {
         Write-Info "Dapr is already installed"
     }
@@ -274,7 +305,45 @@ function Wait-ForPods {
     Write-Success "All pods are ready"
 }
 
-# No port forwarding needed - using NodePort in Minikube
+# Port forwarding for local development access
+function Start-PortForwarding {
+    Write-Info "Starting port forwarding for services..."
+
+    # Kill any existing port-forward processes
+    Get-Process -Name "kubectl" -ErrorAction SilentlyContinue | Where-Object {
+        $_.CommandLine -like "*port-forward*"
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+
+    # Start port forwarding in background jobs
+    Write-Info "Starting port forwarding for Frontend (localhost:3000)..."
+    Start-Job -Name "pf-frontend" -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/todo-chatbot-frontend 3000:3000 -n $ns
+    } -ArgumentList $Namespace | Out-Null
+
+    Write-Info "Starting port forwarding for Backend (localhost:8000)..."
+    Start-Job -Name "pf-backend" -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/todo-chatbot-backend 8000:8000 -n $ns
+    } -ArgumentList $Namespace | Out-Null
+
+    Write-Info "Starting port forwarding for Notification Service (localhost:8001)..."
+    Start-Job -Name "pf-notification" -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/todo-chatbot-notification-service 8001:8001 -n $ns
+    } -ArgumentList $Namespace | Out-Null
+
+    Write-Info "Starting port forwarding for Recurring Service (localhost:8002)..."
+    Start-Job -Name "pf-recurring" -ScriptBlock {
+        param($ns)
+        kubectl port-forward svc/todo-chatbot-recurring-service 8002:8002 -n $ns
+    } -ArgumentList $Namespace | Out-Null
+
+    # Wait a moment for port forwarding to establish
+    Start-Sleep -Seconds 3
+
+    Write-Success "Port forwarding started for all services"
+}
 
 # Display access information
 function Show-AccessInfo {
@@ -285,15 +354,28 @@ function Show-AccessInfo {
     Write-Host "  TaskAI Deployment Successful!" -ForegroundColor Green
     Write-Host "===========================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Access URLs (via NodePort):" -ForegroundColor White
+    Write-Host "Access URLs (via Port Forwarding - localhost):" -ForegroundColor White
+    Write-Host "  Frontend:     " -NoNewline; Write-Host "http://localhost:3000" -ForegroundColor Cyan
+    Write-Host "  Backend API:  " -NoNewline; Write-Host "http://localhost:8000" -ForegroundColor Cyan
+    Write-Host "  Swagger Docs: " -NoNewline; Write-Host "http://localhost:8000/docs" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Access URLs (via NodePort - Minikube IP):" -ForegroundColor White
     Write-Host "  Frontend:     " -NoNewline; Write-Host "http://${minikubeIp}:30000" -ForegroundColor Cyan
     Write-Host "  Backend API:  " -NoNewline; Write-Host "http://${minikubeIp}:30080" -ForegroundColor Cyan
     Write-Host "  Swagger Docs: " -NoNewline; Write-Host "http://${minikubeIp}:30080/docs" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Port Forwarding Status:" -ForegroundColor White
+    Write-Host "  Frontend:              localhost:3000  -> todo-chatbot-frontend:3000"
+    Write-Host "  Backend:               localhost:8000  -> todo-chatbot-backend:8000"
+    Write-Host "  Notification Service:  localhost:8001  -> todo-chatbot-notification-service:8001"
+    Write-Host "  Recurring Service:     localhost:8002  -> todo-chatbot-recurring-service:8002"
     Write-Host ""
     Write-Host "Useful commands:" -ForegroundColor White
     Write-Host "  View pods:           kubectl get pods -n $Namespace"
     Write-Host "  View backend logs:   kubectl logs -f deploy/todo-chatbot-backend -n $Namespace"
     Write-Host "  View frontend logs:  kubectl logs -f deploy/todo-chatbot-frontend -n $Namespace"
+    Write-Host "  View port-forward:   Get-Job | Where-Object { `$_.Name -like 'pf-*' }"
+    Write-Host "  Stop port-forward:   Get-Job | Where-Object { `$_.Name -like 'pf-*' } | Stop-Job"
     Write-Host "  Dapr dashboard:      dapr dashboard -k"
     Write-Host "  Minikube dashboard:  minikube dashboard"
     Write-Host ""
@@ -303,9 +385,10 @@ function Show-AccessInfo {
     Write-Host "To uninstall:" -ForegroundColor Yellow
     Write-Host "  helm uninstall $ReleaseName -n $Namespace"
     Write-Host "  kubectl delete namespace $Namespace"
+    Write-Host "  Get-Job | Where-Object { `$_.Name -like 'pf-*' } | Stop-Job | Remove-Job"
     Write-Host ""
     Write-Host "===========================================================" -ForegroundColor Green
-    Write-Host "  Services are now accessible via Minikube IP!" -ForegroundColor Green
+    Write-Host "  Services accessible via localhost (port-forwarding)!" -ForegroundColor Green
     Write-Host "===========================================================" -ForegroundColor Green
     Write-Host ""
 }
@@ -328,6 +411,7 @@ function Main {
     Update-HelmDeps
     Deploy-Helm
     Wait-ForPods
+    Start-PortForwarding
     Show-AccessInfo
 }
 

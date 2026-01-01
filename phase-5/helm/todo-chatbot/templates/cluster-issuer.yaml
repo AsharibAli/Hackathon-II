@@ -1,0 +1,48 @@
+{{- if and .Values.certManager .Values.certManager.clusterIssuer .Values.certManager.clusterIssuer.enabled -}}
+# [Task]: Cloud-Native Implementation
+# [Description]: Let's Encrypt ClusterIssuer for automatic TLS certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.certManager.clusterIssuer.name | default "letsencrypt-prod" }}
+  labels:
+    {{- include "todo-chatbot.labels" . | nindent 4 }}
+spec:
+  acme:
+    # The ACME server URL
+    server: {{ .Values.certManager.clusterIssuer.server | default "https://acme-v02.api.letsencrypt.org/directory" }}
+    # Email address used for ACME registration
+    email: {{ .Values.certManager.clusterIssuer.email | required "certManager.clusterIssuer.email is required" }}
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: {{ .Values.certManager.clusterIssuer.privateKeySecretRef | default "letsencrypt-prod-key" }}
+    # Enable the HTTP-01 challenge provider
+    solvers:
+      {{- if .Values.certManager.clusterIssuer.solvers }}
+      {{- toYaml .Values.certManager.clusterIssuer.solvers | nindent 6 }}
+      {{- else }}
+      - http01:
+          ingress:
+            class: nginx
+      {{- end }}
+{{- end }}
+---
+{{- if and .Values.certManager .Values.certManager.clusterIssuer .Values.certManager.clusterIssuer.enabled -}}
+# Staging issuer for testing (optional)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    {{- include "todo-chatbot.labels" . | nindent 4 }}
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: {{ .Values.certManager.clusterIssuer.email }}
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+{{- end }}

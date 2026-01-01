@@ -1,0 +1,492 @@
+# [Task]: Cloud-Native Implementation
+# [Description]: DigitalOcean Kubernetes (DOKS) production values
+# [Components]: DOKS, DOCR, DO Managed PostgreSQL, DO Managed Kafka
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+global:
+  # DigitalOcean Container Registry (DOCR)
+  # Replace <your-registry> with your DOCR registry name
+  imageRegistry: "registry.digitalocean.com/<your-registry>"
+  imagePullSecrets:
+    - name: docr-credentials
+  namespace: todo-app
+
+  # Environment identification
+  environment: production
+
+  # Domain configuration (used by ingress)
+  domain: ""  # Set to your domain, e.g., "taskai.example.com"
+
+# =============================================================================
+# BACKEND SERVICE
+# =============================================================================
+backend:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: backend
+    pullPolicy: Always
+    tag: ""  # Set via CI/CD or --set backend.image.tag=<version>
+
+  service:
+    type: ClusterIP  # Using Ingress for external access
+    port: 8000
+    annotations: {}
+
+  # Dapr sidecar configuration
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: warn
+    config: "tracing-config"  # Reference to Dapr config for observability
+
+  # Application configuration
+  config:
+    databaseUrl: ""  # Set via existingSecret
+    secretKey: ""    # Set via existingSecret
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+    logFormat: "json"
+    # OpenAI configuration (set via secrets)
+    openaiApiKey: ""
+    # Resend email configuration (set via secrets)
+    resendApiKey: ""
+
+  # Use existing Kubernetes secret for sensitive data
+  existingSecret: "backend-secrets"
+
+  # Resource allocation for DOKS
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+  # Health check configuration
+  health:
+    livenessPath: /health
+    readinessPath: /ready
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  # Pod Disruption Budget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  # Pod security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  # Service account
+  serviceAccount:
+    create: true
+    annotations: {}
+
+# =============================================================================
+# FRONTEND SERVICE
+# =============================================================================
+frontend:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: frontend
+    pullPolicy: Always
+    tag: ""  # Set via CI/CD
+
+  service:
+    type: ClusterIP  # Using Ingress for external access
+    port: 3000
+    annotations: {}
+
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    nodeEnv: "production"
+    # Next.js public runtime config
+    nextPublicApiUrl: ""  # Set to your API URL if needed
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  health:
+    livenessPath: /api/health
+    readinessPath: /api/health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+
+# =============================================================================
+# NOTIFICATION SERVICE
+# =============================================================================
+notification-service:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: notification-service
+    pullPolicy: Always
+    tag: ""
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+    logLevel: warn
+    config: "tracing-config"
+
+  config:
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+    logFormat: "json"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# =============================================================================
+# RECURRING SERVICE
+# =============================================================================
+recurring-service:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: recurring-service
+    pullPolicy: Always
+    tag: ""
+
+  service:
+    type: ClusterIP
+    port: 8002
+
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+    logLevel: warn
+    config: "tracing-config"
+
+  config:
+    backendUrl: "http://todo-chatbot-backend:8000"
+    pubsubName: "kafka-pubsub"
+    logLevel: "WARNING"
+    logFormat: "json"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# Disable in-cluster PostgreSQL (using DigitalOcean Managed Database)
+postgresql:
+  enabled: false
+
+# DigitalOcean Managed PostgreSQL configuration
+externalDatabase:
+  enabled: true
+  # Connection details (set via secret or values override)
+  host: ""  # e.g., "db-postgresql-nyc1-12345-do-user-xxxxx-0.db.ondigitalocean.com"
+  port: 25060  # DigitalOcean managed PostgreSQL default port
+  database: "todo_chatbot"
+  sslMode: "require"
+  # Reference to Kubernetes secret containing credentials
+  existingSecret: "database-credentials"
+  existingSecretPasswordKey: "password"
+  existingSecretUsernameKey: "username"
+  # Connection pool settings
+  poolSize: 10
+  maxOverflow: 20
+
+# =============================================================================
+# DAPR CONFIGURATION
+# =============================================================================
+dapr:
+  enabled: true
+
+  # Dapr system configuration
+  system:
+    # Enable Dapr dashboard
+    dashboard:
+      enabled: false  # Disable in production for security
+    # Sidecar injector configuration
+    sidecarInjector:
+      enabled: true
+
+  # Dapr components
+  components:
+    # DigitalOcean Managed Kafka pub/sub
+    pubsub:
+      name: kafka-pubsub
+      type: pubsub.kafka
+      version: v1
+      metadata:
+        # Kafka broker connection (set via secret)
+        brokers: ""  # e.g., "kafka-xxxxx-do-user-xxxxx-0.db.ondigitalocean.com:25073"
+        authType: "password"
+        saslUsername: ""  # Set via secret reference
+        saslPassword: ""  # Set via secret reference
+        saslMechanism: "SCRAM-SHA-512"  # DigitalOcean Kafka uses SCRAM-SHA-512
+        tls: "true"
+        skipVerify: "false"
+        # Consumer configuration
+        consumerGroup: "todo-chatbot"
+        initialOffset: "oldest"
+        maxMessageBytes: "1048576"  # 1MB
+        # Producer configuration
+        clientId: "todo-chatbot-producer"
+      # Secret reference for Kafka credentials
+      secretRef: "kafka-credentials"
+
+    # DigitalOcean Managed PostgreSQL state store
+    statestore:
+      name: statestore
+      type: state.postgresql
+      version: v1
+      metadata:
+        connectionString: ""  # Set via secret reference
+        tableName: "dapr_state"
+      secretRef: "database-credentials"
+
+  # Tracing configuration (for Jaeger integration)
+  tracing:
+    enabled: true
+    samplingRate: "1"  # 100% sampling in production (adjust as needed)
+    zipkin:
+      endpointAddress: "http://jaeger-collector.observability:9411/api/v2/spans"
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    # Cert-manager for automatic TLS certificates
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # NGINX Ingress annotations
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    # CORS (if needed)
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+
+  hosts:
+    - host: ""  # Set to your domain, e.g., "taskai.example.com"
+      paths:
+        # API routes to backend
+        - path: /api
+          pathType: Prefix
+          service: backend
+          port: 8000
+        # Health check endpoint
+        - path: /health
+          pathType: Exact
+          service: backend
+          port: 8000
+        # All other routes to frontend
+        - path: /
+          pathType: Prefix
+          service: frontend
+          port: 3000
+
+  tls:
+    - secretName: taskai-tls
+      hosts:
+        - ""  # Set to your domain
+
+# =============================================================================
+# NETWORK POLICIES
+# =============================================================================
+networkPolicy:
+  enabled: true
+
+  # Allow ingress only from ingress controller
+  ingress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+
+  # Allow egress to required services
+  egress:
+    enabled: true
+    to:
+      # Allow DNS
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      # Allow external database
+      - ipBlock:
+          cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+
+# =============================================================================
+# OBSERVABILITY CONFIGURATION
+# =============================================================================
+observability:
+  enabled: true
+  namespace: observability
+
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+
+  # Jaeger tracing
+  jaeger:
+    enabled: true
+    collector:
+      replicas: 2
+    query:
+      replicas: 2
+
+  # Loki log aggregation
+  loki:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: do-block-storage
+
+  # Promtail log shipper
+  promtail:
+    enabled: true
+
+# =============================================================================
+# CERT-MANAGER CONFIGURATION
+# =============================================================================
+certManager:
+  # ClusterIssuer for Let's Encrypt
+  clusterIssuer:
+    enabled: true
+    name: letsencrypt-prod
+    email: ""  # Set to your email for Let's Encrypt notifications
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+# =============================================================================
+# DIGITALOCEAN SPECIFIC ANNOTATIONS
+# =============================================================================
+digitalocean:
+  # Load Balancer configuration (if using LoadBalancer service type)
+  loadBalancer:
+    annotations:
+      service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+      service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "8000"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-check-interval-seconds: "10"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-response-timeout-seconds: "5"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-unhealthy-threshold: "3"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-healthy-threshold: "5"
+      # Enable proxy protocol for real client IPs
+      service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+      # Size: small, medium, large
+      service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-small"
+
+  # Block storage class for persistent volumes
+  storageClass:
+    name: do-block-storage
+    provisioner: dobs.csi.digitalocean.com
+    volumeBindingMode: WaitForFirstConsumer
+    allowVolumeExpansion: true

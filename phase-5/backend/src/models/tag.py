@@ -48,10 +48,13 @@ class Tag(SQLModel, table=True):
         nullable=False
     )
 
-    # Relationships
+    # Relationships: Many-to-many with tasks via task_tags junction table
     tasks: List["Task"] = Relationship(
         back_populates="tags",
-        link_model="TaskTag"
+        sa_relationship_kwargs={
+            "secondary": "task_tags",
+            "lazy": "selectin"
+        }
     )
 
     def __init__(self, **data):

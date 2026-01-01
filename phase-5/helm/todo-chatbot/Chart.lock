@@ -1,0 +1,15 @@
+dependencies:
+- name: backend
+  repository: file://../charts/backend
+  version: 1.0.0
+- name: frontend
+  repository: file://../charts/frontend
+  version: 1.0.0
+- name: notification-service
+  repository: file://../charts/notification-service
+  version: 1.0.0
+- name: recurring-service
+  repository: file://../charts/recurring-service
+  version: 1.0.0
+digest: sha256:40fc3b46fa4093343d70ff7f26db29f7cb72dafee48e40490bde8af1aba10f81
+generated: "2025-12-31T18:41:44.9885935+05:00"

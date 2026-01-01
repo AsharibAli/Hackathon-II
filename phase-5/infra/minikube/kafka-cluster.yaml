@@ -1,6 +1,6 @@
 # [Task]: T109
 # [Spec]: F-009 (US11)
-# [Description]: Strimzi Kafka cluster manifest for Minikube deployment
+# [Description]: Strimzi Kafka cluster manifest for Minikube deployment (KRaft mode)
 ---
 # Namespace for Kafka
 apiVersion: v1
@@ -10,16 +10,41 @@ metadata:
   labels:
     app: kafka
 ---
-# Strimzi Kafka cluster
+# KafkaNodePool for combined controller+broker nodes (required for KRaft)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: combined
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: ephemeral
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+---
+# Strimzi Kafka cluster (KRaft mode - no ZooKeeper)
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: kafka-cluster
   namespace: kafka
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
 spec:
   kafka:
-    version: 3.6.0
-    replicas: 1  # Single replica for development
+    version: 4.0.0
     listeners:
       - name: plain
         port: 9092
@@ -35,29 +60,8 @@ spec:
       transaction.state.log.min.isr: 1
       default.replication.factor: 1
       min.insync.replicas: 1
-      inter.broker.protocol.version: "3.6"
       # Auto-create topics for development
       auto.create.topics.enable: true
-    storage:
-      type: ephemeral  # Ephemeral for development; use persistent in production
-    resources:
-      requests:
-        memory: 512Mi
-        cpu: 250m
-      limits:
-        memory: 1Gi
-        cpu: 500m
-  zookeeper:
-    replicas: 1  # Single replica for development
-    storage:
-      type: ephemeral
-    resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 250m
   entityOperator:
     topicOperator:
       resources:

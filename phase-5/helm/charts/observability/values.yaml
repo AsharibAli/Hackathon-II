@@ -1,0 +1,352 @@
+# [Task]: Cloud-Native Implementation
+# [Description]: Observability stack default values
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+global:
+  namespace: observability
+
+# =============================================================================
+# PROMETHEUS - Metrics Collection
+# =============================================================================
+prometheus:
+  enabled: true
+
+  server:
+    persistentVolume:
+      enabled: true
+      size: 20Gi
+      storageClass: ""  # Use default storage class
+
+    retention: "15d"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  # Alertmanager configuration
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 2Gi
+
+  # ServiceMonitor configuration for scraping TaskAI services
+  serverFiles:
+    prometheus.yml:
+      scrape_configs:
+        # Scrape TaskAI backend
+        - job_name: 'taskai-backend'
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - todo-app
+                  - todo-app-staging
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+              action: keep
+              regex: backend
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+
+        # Scrape TaskAI frontend
+        - job_name: 'taskai-frontend'
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - todo-app
+                  - todo-app-staging
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+              action: keep
+              regex: frontend
+
+        # Scrape notification service
+        - job_name: 'taskai-notification'
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - todo-app
+                  - todo-app-staging
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+              action: keep
+              regex: notification-service
+
+        # Scrape recurring service
+        - job_name: 'taskai-recurring'
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - todo-app
+                  - todo-app-staging
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+              action: keep
+              regex: recurring-service
+
+# =============================================================================
+# GRAFANA - Visualization
+# =============================================================================
+grafana:
+  enabled: true
+
+  adminUser: admin
+  # adminPassword: Set via secret or use generated password
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: ""
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  # Data sources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://observability-prometheus-server
+          access: proxy
+          isDefault: true
+
+        - name: Jaeger
+          type: jaeger
+          url: http://observability-jaeger-query:16686
+          access: proxy
+
+        - name: Loki
+          type: loki
+          url: http://observability-loki:3100
+          access: proxy
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'taskai'
+          orgId: 1
+          folder: 'TaskAI'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/taskai
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+
+  # Ingress (optional)
+  ingress:
+    enabled: false
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - grafana.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.example.com
+
+# =============================================================================
+# JAEGER - Distributed Tracing
+# =============================================================================
+jaeger:
+  enabled: true
+
+  provisionDataStore:
+    cassandra: false
+    elasticsearch: false
+
+  # Use in-memory storage (for dev) or configure Elasticsearch for production
+  storage:
+    type: memory
+
+  # Collector configuration
+  collector:
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  # Query service configuration
+  query:
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  # Agent configuration (sidecar or daemonset)
+  agent:
+    enabled: true
+
+# =============================================================================
+# LOKI - Log Aggregation
+# =============================================================================
+loki:
+  enabled: true
+
+  # Use single binary mode for simplicity
+  deploymentMode: SingleBinary
+
+  loki:
+    auth_enabled: false
+
+    storage:
+      type: filesystem
+
+    commonConfig:
+      replication_factor: 1
+
+  singleBinary:
+    replicas: 1
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: ""
+
+  # Disable components not needed in single binary mode
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+
+# =============================================================================
+# PROMTAIL - Log Shipper
+# =============================================================================
+promtail:
+  enabled: true
+
+  config:
+    clients:
+      - url: http://observability-loki:3100/loki/api/v1/push
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    scrape_configs:
+      # Scrape all pods in todo-app namespace
+      - job_name: taskai-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - todo-app
+                - todo-app-staging
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# =============================================================================
+# SERVICE MONITORS FOR PROMETHEUS
+# =============================================================================
+serviceMonitors:
+  enabled: true
+
+  # Monitor for backend service
+  backend:
+    enabled: true
+    namespace: todo-app
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: backend
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+
+  # Monitor for frontend service
+  frontend:
+    enabled: true
+    namespace: todo-app
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: frontend
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+
+  # Monitor for notification service
+  notification:
+    enabled: true
+    namespace: todo-app
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: notification-service
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+
+  # Monitor for recurring service
+  recurring:
+    enabled: true
+    namespace: todo-app
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: recurring-service
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s

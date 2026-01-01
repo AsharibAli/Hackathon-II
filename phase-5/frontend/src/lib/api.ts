@@ -231,8 +231,13 @@ export interface UpdateProfileRequest {
 }
 
 // ============================================
-// Tasks API
+// Tasks API - Phase 5 Enhanced
 // ============================================
+
+export type Priority = "low" | "medium" | "high";
+export type Recurrence = "none" | "daily" | "weekly" | "monthly";
+export type SortField = "created_at" | "updated_at" | "due_date" | "priority" | "title";
+export type SortOrder = "asc" | "desc";
 
 export interface Task {
   id: string;
@@ -242,25 +247,63 @@ export interface Task {
   is_completed: boolean;
   created_at: string;
   updated_at: string;
+  // Phase 5 additions
+  priority: Priority;
+  due_date?: string;
+  remind_at?: string;
+  reminder_sent: boolean;
+  recurrence: Recurrence;
+  tags: string[];
 }
 
 export interface CreateTaskRequest {
   title: string;
   description?: string;
+  priority?: Priority;
+  due_date?: string;
+  tags?: string[];
 }
 
 export interface UpdateTaskRequest {
   title?: string;
   description?: string;
   is_completed?: boolean;
+  priority?: Priority;
+  due_date?: string;
+  remind_at?: string;
+  recurrence?: Recurrence;
+}
+
+export interface TaskFilters {
+  priority?: Priority;
+  tag?: string;
+  is_completed?: boolean;
+  overdue?: boolean;
+  sort_by?: SortField;
+  sort_order?: SortOrder;
 }
 
 export const tasksApi = {
   /**
-   * Get all tasks for the authenticated user.
+   * Get all tasks for the authenticated user with optional filters.
    */
-  getAll: async (): Promise<Task[]> => {
-    return fetchApi<Task[]>("/api/tasks");
+  getAll: async (filters?: TaskFilters): Promise<Task[]> => {
+    const params = new URLSearchParams();
+    if (filters?.priority) params.append("priority", filters.priority);
+    if (filters?.tag) params.append("tag", filters.tag);
+    if (filters?.is_completed !== undefined) params.append("is_completed", String(filters.is_completed));
+    if (filters?.overdue) params.append("overdue", "true");
+    if (filters?.sort_by) params.append("sort_by", filters.sort_by);
+    if (filters?.sort_order) params.append("sort_order", filters.sort_order);
+    const queryString = params.toString();
+    return fetchApi<Task[]>(`/api/tasks${queryString ? `?${queryString}` : ""}`);
+  },
+
+  /**
+   * Search tasks by keyword.
+   */
+  search: async (query: string): Promise<Task[]> => {
+    return fetchApi<Task[]>(`/api/tasks/search?q=${encodeURIComponent(query)}`);
   },
 
   /**
@@ -305,6 +348,35 @@ export const tasksApi = {
   toggleComplete: async (taskId: string): Promise<Task> => {
     return fetchApi<Task>(`/api/tasks/${taskId}/complete`, {
       method: "PATCH",
+    });
+  },
+
+  /**
+   * Add a tag to a task.
+   */
+  addTag: async (taskId: string, tagName: string): Promise<Task> => {
+    return fetchApi<Task>(`/api/tasks/${taskId}/tags`, {
+      method: "POST",
+      body: JSON.stringify({ tag_name: tagName }),
+    });
+  },
+
+  /**
+   * Remove a tag from a task.
+   */
+  removeTag: async (taskId: string, tagName: string): Promise<Task> => {
+    return fetchApi<Task>(`/api/tasks/${taskId}/tags/${encodeURIComponent(tagName)}`, {
+      method: "DELETE",
+    });
+  },
+
+  /**
+   * Set a reminder for a task.
+   */
+  setReminder: async (taskId: string, remindAt: string): Promise<Task> => {
+    return fetchApi<Task>(`/api/tasks/${taskId}/reminder`, {
+      method: "POST",
+      body: JSON.stringify({ remind_at: remindAt }),
     });
   },
 };

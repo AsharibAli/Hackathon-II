@@ -1,3 +1,7 @@
+/**
+ * ChatInterface component.
+ * Neo-Editorial styled chat interface with messages and input.
+ */
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -6,6 +10,7 @@ import { ChatInput } from "./ChatInput";
 import { WelcomeScreen } from "./chat/WelcomeScreen";
 import { Message } from "../types/chat";
 import { ScrollArea } from "./ui/scroll-area";
+import { Sparkles } from "lucide-react";
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -39,25 +44,47 @@ export function ChatInterface({
           <WelcomeScreen onStarterPrompt={handleStarterPrompt} />
         ) : (
           <ScrollArea className="h-full">
-            <div className="max-w-3xl mx-auto px-4 py-6">
-              {messages.map((msg) => (
-                <ChatMessage key={msg.id} message={msg} />
+            <div className="max-w-3xl mx-auto px-4 py-8">
+              {messages.map((msg, index) => (
+                <div
+                  key={msg.id}
+                  className="animate-fade-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <ChatMessage message={msg} />
+                </div>
               ))}
-              
+
               {/* Loading indicator */}
               {isLoading && (
-                <div className="flex items-center gap-4 py-4">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                <div className="flex items-start gap-4 py-6 animate-fade-up">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-primary animate-pulse" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <div className="flex-1 pt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2.5 w-2.5 bg-primary/60 rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <span
+                          className="h-2.5 w-2.5 bg-primary/60 rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        />
+                        <span
+                          className="h-2.5 w-2.5 bg-primary/60 rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        Thinking...
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
-              
+
               <div ref={scrollRef} />
             </div>
           </ScrollArea>
@@ -65,7 +92,7 @@ export function ChatInterface({
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+      <div className="border-t border-border/50 bg-background/80 backdrop-blur-md flex-shrink-0">
         <div className="max-w-3xl mx-auto px-4 py-4">
           <ChatInput onSend={onSendMessage} isLoading={isLoading} />
         </div>

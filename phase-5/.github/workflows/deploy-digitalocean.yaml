@@ -1,0 +1,431 @@
+# [Task]: Cloud-Native Implementation
+# [Description]: GitHub Actions workflow for deploying to DigitalOcean Kubernetes (DOKS)
+
+name: Deploy to DigitalOcean
+
+on:
+  # Auto-deploy to staging on main push
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+      - 'dapr/**'
+      - '.github/workflows/deploy-digitalocean.yaml'
+
+  # Deploy to production on version tag
+  push:
+    tags:
+      - 'v*.*.*'
+
+  # Manual trigger with environment selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy (default: latest SHA)'
+        required: false
+      dry_run:
+        description: 'Dry run mode (no actual deployment)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOCR_REGISTRY: registry.digitalocean.com
+  DOCR_NAMESPACE: ${{ vars.DOCR_NAMESPACE }}
+  HELM_CHART_PATH: ./helm/todo-chatbot
+
+jobs:
+  # Pre-deployment validation
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Helm lint
+        run: |
+          helm lint ${{ env.HELM_CHART_PATH }} \
+            --values ${{ env.HELM_CHART_PATH }}/values-digitalocean.yaml
+
+      - name: Helm template (dry-run)
+        run: |
+          helm template todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --values ${{ env.HELM_CHART_PATH }}/values-digitalocean.yaml \
+            --set backend.image.tag=${{ steps.tag.outputs.tag }} \
+            --set frontend.image.tag=${{ steps.tag.outputs.tag }} \
+            --set notification-service.image.tag=${{ steps.tag.outputs.tag }} \
+            --set recurring-service.image.tag=${{ steps.tag.outputs.tag }} \
+            > /dev/null
+
+  # Deploy to staging environment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Authenticate to DOKS
+        run: |
+          doctl kubernetes cluster kubeconfig save ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Login to DOCR
+        run: |
+          doctl registry login --expiry-seconds 3600
+
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+
+      - name: Deploy to Staging
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          helm upgrade --install todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app-staging \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-digitalocean.yaml \
+            --set global.imageRegistry=${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAMESPACE }} \
+            --set global.namespace=todo-app-staging \
+            --set backend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set frontend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set notification-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set recurring-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set ingress.hosts[0].host=${{ vars.STAGING_DOMAIN }} \
+            --set ingress.tls[0].hosts[0]=${{ vars.STAGING_DOMAIN }} \
+            --set certManager.clusterIssuer.email=${{ vars.LETSENCRYPT_EMAIL }} \
+            --atomic \
+            --timeout 10m \
+            --wait
+
+      - name: Dry run deployment
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          helm upgrade --install todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app-staging \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-digitalocean.yaml \
+            --set global.imageRegistry=${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAMESPACE }} \
+            --set backend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set frontend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set notification-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set recurring-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --dry-run
+
+      - name: Apply Dapr components
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          kubectl apply -f dapr/components/kafka-pubsub-digitalocean.yaml -n todo-app-staging
+          kubectl apply -f dapr/components/statestore-digitalocean.yaml -n todo-app-staging
+          kubectl apply -f dapr/components/subscription-reminders.yaml -n todo-app-staging
+          kubectl apply -f dapr/components/subscription-task-events.yaml -n todo-app-staging
+
+      - name: Verify deployment
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "Waiting for deployments to be ready..."
+          kubectl rollout status deployment/todo-chatbot-backend -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-frontend -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-notification-service -n todo-app-staging --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-recurring-service -n todo-app-staging --timeout=300s
+
+      - name: Get deployment info
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "## Staging Deployment Info" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get services -n todo-app-staging -o wide >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n todo-app-staging >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Ingress" >> $GITHUB_STEP_SUMMARY
+          kubectl get ingress -n todo-app-staging >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify Slack on success
+        if: success() && github.event.inputs.dry_run != 'true'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Staging Deployment to DOKS Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ DOKS Staging Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Image Tag:*\n${{ needs.validate.outputs.image_tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*URL:*\nhttps://${{ vars.STAGING_DOMAIN }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+  # Deploy to production environment (requires approval)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Authenticate to DOKS
+        run: |
+          doctl kubernetes cluster kubeconfig save ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Login to DOCR
+        run: |
+          doctl registry login --expiry-seconds 3600
+
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+
+      - name: Create database credentials secret
+        run: |
+          kubectl create namespace todo-app --dry-run=client -o yaml | kubectl apply -f -
+
+          # Check if secret exists, if not remind to create it
+          if ! kubectl get secret database-credentials -n todo-app &> /dev/null; then
+            echo "::warning::database-credentials secret not found. Please create it before deployment."
+            echo "Run: kubectl create secret generic database-credentials --from-literal=username=... --from-literal=password=... --from-literal=connection-string=... -n todo-app"
+          fi
+
+      - name: Deploy to Production
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          helm upgrade --install todo-chatbot ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-digitalocean.yaml \
+            --set global.imageRegistry=${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAMESPACE }} \
+            --set global.namespace=todo-app \
+            --set backend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set frontend.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set notification-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set recurring-service.image.tag=${{ needs.validate.outputs.image_tag }} \
+            --set ingress.hosts[0].host=${{ vars.PRODUCTION_DOMAIN }} \
+            --set ingress.tls[0].hosts[0]=${{ vars.PRODUCTION_DOMAIN }} \
+            --set certManager.clusterIssuer.email=${{ vars.LETSENCRYPT_EMAIL }} \
+            --atomic \
+            --timeout 15m \
+            --wait
+
+      - name: Apply Dapr components
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          kubectl apply -f dapr/components/kafka-pubsub-digitalocean.yaml -n todo-app
+          kubectl apply -f dapr/components/statestore-digitalocean.yaml -n todo-app
+          kubectl apply -f dapr/components/subscription-reminders.yaml -n todo-app
+          kubectl apply -f dapr/components/subscription-task-events.yaml -n todo-app
+
+      - name: Verify deployment
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "Waiting for deployments to be ready..."
+          kubectl rollout status deployment/todo-chatbot-backend -n todo-app --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-frontend -n todo-app --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-notification-service -n todo-app --timeout=300s
+          kubectl rollout status deployment/todo-chatbot-recurring-service -n todo-app --timeout=300s
+
+      - name: Run smoke tests
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          # Wait for ingress to get an IP
+          echo "Waiting for ingress to be ready..."
+          sleep 30
+
+          # Get the ingress IP or hostname
+          INGRESS_HOST=$(kubectl get ingress todo-chatbot -n todo-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+          if [ -n "$INGRESS_HOST" ]; then
+            echo "Testing health endpoint at $INGRESS_HOST..."
+            curl -sf "http://$INGRESS_HOST/health" || echo "Health check pending (DNS propagation may take time)"
+          else
+            echo "Ingress IP not yet available. Check manually after DNS propagation."
+          fi
+
+      - name: Get deployment info
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "## Production Deployment Info" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** ${{ needs.validate.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get services -n todo-app -o wide >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n todo-app >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Ingress" >> $GITHUB_STEP_SUMMARY
+          kubectl get ingress -n todo-app >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify Slack on success
+        if: success() && github.event.inputs.dry_run != 'true'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production Deployment to DOKS Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚀 DOKS Production Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n${{ needs.validate.outputs.image_tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*URL:*\nhttps://${{ vars.PRODUCTION_DOMAIN }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:*\n${{ github.actor }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production Deployment to DOKS Failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🔥 DOKS Production Deployment Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n${{ needs.validate.outputs.image_tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true

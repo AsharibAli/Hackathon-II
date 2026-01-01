@@ -9,8 +9,9 @@ Each task belongs to a single user (many-to-one relationship).
 from sqlmodel import SQLModel, Field, Relationship
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ForwardRef
 from enum import Enum
+import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from .user import User
@@ -86,10 +87,12 @@ class Task(SQLModel, table=True):
     )
 
     # Phase 5 additions - T012: Priority
+    # Use sa_type to store as string instead of PostgreSQL native enum
     priority: Priority = Field(
         default=Priority.MEDIUM,
         nullable=False,
-        index=True
+        index=True,
+        sa_type=sa.String(10),
     )
 
     # T013: Due date
@@ -110,9 +113,11 @@ class Task(SQLModel, table=True):
     )
 
     # T016: Recurrence pattern
+    # Use sa_type to store as string instead of PostgreSQL native enum
     recurrence: Recurrence = Field(
         default=Recurrence.NONE,
-        nullable=False
+        nullable=False,
+        sa_type=sa.String(10),
     )
 
     # T017: Parent task reference for recurring instances
@@ -125,10 +130,14 @@ class Task(SQLModel, table=True):
     # Relationship: Many tasks belong to one user
     owner: "User" = Relationship(back_populates="tasks")
 
-    # Relationship: Many-to-many with tags
+    # Relationship: Many-to-many with tags via task_tags junction table
+    # Note: We use sa_relationship_kwargs with secondary for proper M2M handling
     tags: List["Tag"] = Relationship(
         back_populates="tasks",
-        link_model="TaskTag"
+        sa_relationship_kwargs={
+            "secondary": "task_tags",
+            "lazy": "selectin"
+        }
     )
 
     class Config:

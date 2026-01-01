@@ -85,9 +85,10 @@ kubectl apply -f dapr/components/ -n todo-app
 
 #### 7. Deploy with Helm
 ```bash
-helm install todo-chatbot ./helm/todo-chatbot \
-  -f ./helm/todo-chatbot/values-minikube.yaml \
-  -n todo-app
+helm install taskai ./helm/taskai \
+  -f ./helm/taskai/values-minikube.yaml \
+  -n todo-app \
+  --set secrets.openaiApiKey="sk-your-key"
 ```
 
 #### 8. Verify Deployment
@@ -130,15 +131,20 @@ kubectl port-forward svc/kafka-cluster-kafka-bootstrap 9092:9092 -n kafka
 ```bash
 cd backend
 
-# Create virtual environment
-uv venv
+# Install dependencies (creates .venv automatically)
+uv sync
+
+# Activate virtual environment
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 
-# Install dependencies
-uv pip install -e ".[dev]"
+# Run migrations
+uv run alembic upgrade head
 
 # Run with Dapr sidecar
-dapr run --app-id todo-backend --app-port 8000 -- uvicorn main:app --reload
+dapr run --app-id todo-backend --app-port 8000 -- uvicorn src.main:app --reload
+
+# Or without Dapr (reminder events won't be published)
+uvicorn src.main:app --reload --port 8000
 ```
 
 ### Frontend (without Kubernetes)
@@ -157,20 +163,28 @@ pnpm dev
 ```bash
 cd notification-service
 
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
+# Install dependencies
+uv sync
 
-dapr run --app-id notification-service --app-port 8001 -- uvicorn main:app --reload
+# Activate virtual environment
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# Run with Dapr sidecar
+dapr run --app-id notification-service --app-port 8001 -- uvicorn src.main:app --reload
 ```
 
 ### Recurring Service
 ```bash
 cd recurring-service
 
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
+# Install dependencies
+uv sync
 
-dapr run --app-id recurring-service --app-port 8002 -- uvicorn main:app --reload
+# Activate virtual environment
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# Run with Dapr sidecar
+dapr run --app-id recurring-service --app-port 8002 -- uvicorn src.main:app --reload
 ```
 
 ---
@@ -181,8 +195,11 @@ dapr run --app-id recurring-service --app-port 8002 -- uvicorn main:app --reload
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/todo
 JWT_SECRET=your-secret-key
+OPENAI_API_KEY=sk-your-openai-api-key
 DAPR_HTTP_PORT=3500
 PUBSUB_NAME=kafka-pubsub
+REMINDER_SCHEDULER_ENABLED=true
+REMINDER_POLL_INTERVAL=60
 ```
 
 ### Frontend
@@ -190,11 +207,21 @@ PUBSUB_NAME=kafka-pubsub
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### Notification/Recurring Services
+### Notification Service
+```env
+DAPR_HTTP_PORT=3500
+PUBSUB_NAME=kafka-pubsub
+LOG_JSON=true
+LOG_LEVEL=20
+```
+
+### Recurring Service
 ```env
 DAPR_HTTP_PORT=3500
 PUBSUB_NAME=kafka-pubsub
 BACKEND_URL=http://localhost:8000
+LOG_JSON=true
+LOG_LEVEL=20
 ```
 
 ---
@@ -269,7 +296,7 @@ dapr dashboard -k
 
 ### Reset Everything
 ```bash
-helm uninstall todo-chatbot -n todo-app
+helm uninstall taskai -n todo-app
 kubectl delete namespace todo-app
 kubectl delete namespace kafka
 minikube delete
@@ -279,7 +306,21 @@ minikube delete
 
 ## Next Steps
 
-1. **Test Features**: Try chat commands like "create task with high priority"
+1. **Test Phase 5 Features**:
+   - Chat: "create a high priority task to finish report"
+   - Chat: "add tag 'work' to finish report"
+   - Chat: "set due date tomorrow for finish report"
+   - Chat: "set reminder for finish report at 9am"
+   - Chat: "show overdue tasks"
+   - GUI: Use filters, search, and sort options
 2. **Monitor Events**: Watch Dapr dashboard for pub/sub activity
-3. **Scale Services**: `kubectl scale deployment backend --replicas=3 -n todo-app`
-4. **Deploy to Cloud**: Update values files for AKS/GKE/OKE
+   ```bash
+   dapr dashboard -k
+   ```
+3. **Check Service Logs**:
+   ```bash
+   kubectl logs -l app=notification-service -n todo-app -f
+   kubectl logs -l app=recurring-service -n todo-app -f
+   ```
+4. **Scale Services**: `kubectl scale deployment backend --replicas=3 -n todo-app`
+5. **Deploy to Cloud**: Update values files for AKS/GKE/OKE
