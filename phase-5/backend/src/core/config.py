@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "TaskAI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    LOG_LEVEL: str = "INFO"
 
     # Server Configuration
     HOST: str = "0.0.0.0"
