@@ -20,7 +20,7 @@ Read the given documentation [here](https://docs.google.com/document/d/1KHxeDNnq
 
 - Build a Todo Application with local kubernetes deployment.
 
-### Phase 5 (Working)
+### Phase 5 (Completed)
 
 - Build a Advance Todo Application with local kubernetes setup and production-ready deployment on cloud.
 
