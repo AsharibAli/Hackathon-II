@@ -1,4 +1,7 @@
 services:
+  # ============================================
+  # Infrastructure Services
+  # ============================================
   postgres:
     image: postgres:16-alpine
     container_name: taskai-postgres
@@ -16,7 +19,52 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - taskai-network
 
+  # Kafka with KRaft mode (no Zookeeper required)
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: taskai-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft settings
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Auto-create topics
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Allow plaintext listener
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - taskai-network
+
+  # Dapr Placement service
+  dapr-placement:
+    image: daprio/dapr:1.12.0
+    container_name: taskai-dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - taskai-network
+
+  # ============================================
+  # Application Services
+  # ============================================
   backend:
     build: ./backend
     container_name: taskai-backend
@@ -35,15 +83,43 @@ services:
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
       FRONTEND_URL: http://localhost:3000
       DEBUG: ${DEBUG:-false}
+      # Dapr configuration
+      DAPR_ENABLED: "true"
+      DAPR_HTTP_PORT: "3500"
+      PUBSUB_NAME: "kafka-pubsub"
     depends_on:
       postgres:
         condition: service_healthy
-        required: false
+      kafka:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - taskai-network
+
+  # Dapr sidecar for backend
+  backend-dapr:
+    image: daprio/daprd:1.12.0
+    container_name: taskai-backend-dapr
+    command: [
+      "./daprd",
+      "-app-id", "taskai-backend",
+      "-app-port", "8000",
+      "-dapr-http-port", "3500",
+      "-dapr-grpc-port", "50001",
+      "-placement-host-address", "dapr-placement:50006",
+      "-resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - backend
+      - dapr-placement
+      - kafka
+    network_mode: "service:backend"
 
   frontend:
     build:
@@ -59,6 +135,106 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       - backend
+    networks:
+      - taskai-network
+
+  # ============================================
+  # Microservices
+  # ============================================
+  notification-service:
+    build: ./notification-service
+    container_name: taskai-notification-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      APP_NAME: taskai-notification-service
+      APP_VERSION: "1.0.0"
+      LOG_LEVEL: DEBUG
+      LOG_FORMAT: json
+      PUBSUB_NAME: kafka-pubsub
+      DAPR_HTTP_PORT: "3500"
+    depends_on:
+      - kafka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - taskai-network
+
+  # Dapr sidecar for notification-service
+  notification-service-dapr:
+    image: daprio/daprd:1.12.0
+    container_name: taskai-notification-service-dapr
+    command: [
+      "./daprd",
+      "-app-id", "taskai-notification-service",
+      "-app-port", "8001",
+      "-dapr-http-port", "3500",
+      "-dapr-grpc-port", "50001",
+      "-placement-host-address", "dapr-placement:50006",
+      "-resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - notification-service
+      - dapr-placement
+      - kafka
+    network_mode: "service:notification-service"
+
+  recurring-service:
+    build: ./recurring-service
+    container_name: taskai-recurring-service
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      APP_NAME: taskai-recurring-service
+      APP_VERSION: "1.0.0"
+      LOG_LEVEL: DEBUG
+      LOG_FORMAT: json
+      PUBSUB_NAME: kafka-pubsub
+      DAPR_HTTP_PORT: "3500"
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - kafka
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - taskai-network
+
+  # Dapr sidecar for recurring-service
+  recurring-service-dapr:
+    image: daprio/daprd:1.12.0
+    container_name: taskai-recurring-service-dapr
+    command: [
+      "./daprd",
+      "-app-id", "taskai-recurring-service",
+      "-app-port", "8002",
+      "-dapr-http-port", "3500",
+      "-dapr-grpc-port", "50001",
+      "-placement-host-address", "dapr-placement:50006",
+      "-resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - recurring-service
+      - dapr-placement
+      - kafka
+    network_mode: "service:recurring-service"
 
 volumes:
   postgres_data:
+  kafka_data:
+
+networks:
+  taskai-network:
+    driver: bridge
