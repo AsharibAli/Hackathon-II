@@ -1,175 +1,184 @@
 """
-OpenTelemetry distributed tracing configuration.
+Distributed tracing configuration (no-op implementation).
 
 [Task]: Cloud-Native Implementation
-[Description]: Distributed tracing with Jaeger integration for observability
+[Description]: Distributed tracing with no external dependencies
 """
 
 import os
-from typing import Optional
-
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.propagate import set_global_textmap
-from opentelemetry.propagators.b3 import B3MultiFormat
-
-# Import exporters conditionally based on availability
-try:
-    from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-    JAEGER_AVAILABLE = True
-except ImportError:
-    JAEGER_AVAILABLE = False
-
-try:
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-    OTLP_AVAILABLE = True
-except ImportError:
-    OTLP_AVAILABLE = False
+import functools
+import asyncio
+from typing import Optional, Any, Dict
+from contextvars import ContextVar
+from contextlib import contextmanager
+import uuid
 
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
-# Environment variables for tracing configuration
-TRACING_ENABLED = os.getenv("TRACING_ENABLED", "true").lower() == "true"
+TRACING_ENABLED = os.getenv("TRACING_ENABLED", "false").lower() == "true"
 SERVICE_NAME_VALUE = os.getenv("OTEL_SERVICE_NAME", "taskai-backend")
 SERVICE_VERSION_VALUE = os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
 
-# Jaeger configuration
-JAEGER_AGENT_HOST = os.getenv("JAEGER_AGENT_HOST", "localhost")
-JAEGER_AGENT_PORT = int(os.getenv("JAEGER_AGENT_PORT", "6831"))
-JAEGER_COLLECTOR_ENDPOINT = os.getenv(
-    "JAEGER_COLLECTOR_ENDPOINT",
-    "http://jaeger-collector:14268/api/traces"
-)
-
-# OTLP configuration (alternative to Jaeger)
-OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger-collector:4317")
-
-# Sampling rate (0.0 to 1.0)
-SAMPLING_RATE = float(os.getenv("OTEL_SAMPLING_RATE", "1.0"))
-
 
 # =============================================================================
-# TRACER PROVIDER SETUP
+# NO-OP SPAN IMPLEMENTATION
 # =============================================================================
 
-_tracer_provider: Optional[TracerProvider] = None
+class SpanKind:
+    """Span kind enumeration."""
+    INTERNAL = 0
+    SERVER = 1
+    CLIENT = 2
+    PRODUCER = 3
+    CONSUMER = 4
+
+
+class StatusCode:
+    """Status code enumeration."""
+    UNSET = 0
+    OK = 1
+    ERROR = 2
+
+
+class Status:
+    """Span status."""
+    def __init__(self, status_code: int = StatusCode.UNSET, description: str = ""):
+        self.status_code = status_code
+        self.description = description
+
+
+class SpanContext:
+    """Span context with trace and span IDs."""
+    def __init__(self, trace_id: str = "", span_id: str = ""):
+        self.trace_id = trace_id or uuid.uuid4().hex
+        self.span_id = span_id or uuid.uuid4().hex[:16]
+        self.is_valid = bool(trace_id or span_id)
+
+    @property
+    def trace_id_int(self) -> int:
+        """Get trace ID as integer."""
+        try:
+            return int(self.trace_id, 16)
+        except ValueError:
+            return 0
+
+
+class NoOpSpan:
+    """No-op span implementation."""
+
+    def __init__(self, name: str = "", kind: int = SpanKind.INTERNAL, attributes: Optional[Dict] = None):
+        self.name = name
+        self.kind = kind
+        self._attributes: Dict[str, Any] = attributes or {}
+        self._events: list = []
+        self._status = Status()
+        self._context = SpanContext()
+        self._recording = True
+
+    def get_span_context(self) -> SpanContext:
+        """Get the span context."""
+        return self._context
+
+    def is_recording(self) -> bool:
+        """Check if span is recording."""
+        return self._recording
+
+    def set_attribute(self, key: str, value: Any) -> None:
+        """Set a span attribute."""
+        self._attributes[key] = value
+
+    def add_event(self, name: str, attributes: Optional[Dict] = None) -> None:
+        """Add an event to the span."""
+        self._events.append({"name": name, "attributes": attributes or {}})
+
+    def set_status(self, status: Status) -> None:
+        """Set the span status."""
+        self._status = status
+
+    def record_exception(self, exception: Exception) -> None:
+        """Record an exception."""
+        self.add_event("exception", {
+            "exception.type": type(exception).__name__,
+            "exception.message": str(exception)
+        })
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val:
+            self.record_exception(exc_val)
+            self.set_status(Status(StatusCode.ERROR, str(exc_val)))
+        return False
+
+
+class NoOpTracer:
+    """No-op tracer implementation."""
+
+    def __init__(self, name: str = ""):
+        self.name = name
+
+    def start_as_current_span(
+        self,
+        name: str,
+        kind: int = SpanKind.INTERNAL,
+        attributes: Optional[Dict] = None,
+    ) -> NoOpSpan:
+        """Start a new span as the current span."""
+        span = NoOpSpan(name, kind, attributes)
+        _current_span.set(span)
+        return span
+
+
+# Context variable for current span
+_current_span: ContextVar[Optional[NoOpSpan]] = ContextVar("current_span", default=None)
+
+# Global state
 _initialized = False
+_tracer_provider: Optional[Any] = None
 
+
+# =============================================================================
+# PUBLIC API
+# =============================================================================
 
 def setup_tracing(app_name: str = SERVICE_NAME_VALUE, app_version: str = SERVICE_VERSION_VALUE) -> None:
     """
-    Initialize OpenTelemetry tracing.
+    Initialize tracing (no-op in this implementation).
 
     Args:
         app_name: Service name for traces
         app_version: Service version for traces
     """
-    global _tracer_provider, _initialized
-
-    if _initialized:
-        return
-
-    if not TRACING_ENABLED:
-        _initialized = True
-        return
-
-    # Create resource with service information
-    resource = Resource.create({
-        SERVICE_NAME: app_name,
-        SERVICE_VERSION: app_version,
-        "deployment.environment": os.getenv("ENVIRONMENT", "development"),
-        "service.namespace": "taskai",
-    })
-
-    # Create tracer provider
-    _tracer_provider = TracerProvider(resource=resource)
-
-    # Add exporter based on availability and configuration
-    exporter = _create_exporter()
-    if exporter:
-        span_processor = BatchSpanProcessor(exporter)
-        _tracer_provider.add_span_processor(span_processor)
-
-    # Set global tracer provider
-    trace.set_tracer_provider(_tracer_provider)
-
-    # Set B3 propagator for compatibility with Dapr and other systems
-    set_global_textmap(B3MultiFormat())
-
+    global _initialized
     _initialized = True
-
-
-def _create_exporter():
-    """Create the appropriate span exporter based on configuration."""
-    exporter_type = os.getenv("OTEL_EXPORTER_TYPE", "jaeger").lower()
-
-    if exporter_type == "otlp" and OTLP_AVAILABLE:
-        return OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True)
-
-    if exporter_type == "jaeger" and JAEGER_AVAILABLE:
-        # Try collector endpoint first, fall back to agent
-        try:
-            return JaegerExporter(
-                collector_endpoint=JAEGER_COLLECTOR_ENDPOINT,
-            )
-        except Exception:
-            return JaegerExporter(
-                agent_host_name=JAEGER_AGENT_HOST,
-                agent_port=JAEGER_AGENT_PORT,
-            )
-
-    # No exporter available - traces will be discarded
-    return None
 
 
 def instrument_fastapi(app) -> None:
     """
-    Instrument a FastAPI application for tracing.
+    Instrument a FastAPI application for tracing (no-op).
 
     Args:
         app: FastAPI application instance
     """
-    if not TRACING_ENABLED:
-        return
-
-    FastAPIInstrumentor.instrument_app(
-        app,
-        excluded_urls="health,metrics,docs,redoc,openapi.json",
-        tracer_provider=_tracer_provider,
-    )
+    pass
 
 
 def instrument_httpx() -> None:
-    """Instrument httpx client for tracing outgoing HTTP requests."""
-    if not TRACING_ENABLED:
-        return
-
-    HTTPXClientInstrumentor().instrument()
+    """Instrument httpx client for tracing (no-op)."""
+    pass
 
 
 def shutdown_tracing() -> None:
-    """Shutdown tracing and flush any pending spans."""
-    global _tracer_provider, _initialized
-
-    if _tracer_provider:
-        _tracer_provider.shutdown()
-        _tracer_provider = None
-
+    """Shutdown tracing (no-op)."""
+    global _initialized
     _initialized = False
 
 
-# =============================================================================
-# TRACER UTILITIES
-# =============================================================================
-
-def get_tracer(name: str = "taskai") -> trace.Tracer:
+def get_tracer(name: str = "taskai") -> NoOpTracer:
     """
     Get a tracer instance for creating spans.
 
@@ -179,27 +188,27 @@ def get_tracer(name: str = "taskai") -> trace.Tracer:
     Returns:
         Tracer instance
     """
-    return trace.get_tracer(name)
+    return NoOpTracer(name)
 
 
-def get_current_span() -> Optional[trace.Span]:
+def get_current_span() -> Optional[NoOpSpan]:
     """Get the currently active span, if any."""
-    return trace.get_current_span()
+    return _current_span.get()
 
 
 def get_trace_id() -> Optional[str]:
     """Get the current trace ID as a hex string."""
     span = get_current_span()
-    if span and span.get_span_context().is_valid:
-        return format(span.get_span_context().trace_id, '032x')
+    if span:
+        return span.get_span_context().trace_id
     return None
 
 
 def get_span_id() -> Optional[str]:
     """Get the current span ID as a hex string."""
     span = get_current_span()
-    if span and span.get_span_context().is_valid:
-        return format(span.get_span_context().span_id, '016x')
+    if span:
+        return span.get_span_context().span_id
     return None
 
 
@@ -207,9 +216,10 @@ def get_span_id() -> Optional[str]:
 # SPAN CONTEXT MANAGERS
 # =============================================================================
 
+@contextmanager
 def create_span(
     name: str,
-    kind: trace.SpanKind = trace.SpanKind.INTERNAL,
+    kind: int = SpanKind.INTERNAL,
     attributes: Optional[dict] = None
 ):
     """
@@ -225,15 +235,19 @@ def create_span(
         kind: Span kind (INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER)
         attributes: Initial span attributes
 
-    Returns:
-        Span context manager
+    Yields:
+        Span instance
     """
-    tracer = get_tracer()
-    return tracer.start_as_current_span(
-        name,
-        kind=kind,
-        attributes=attributes or {},
-    )
+    span = NoOpSpan(name, kind, attributes)
+    token = _current_span.set(span)
+    try:
+        yield span
+    except Exception as e:
+        span.record_exception(e)
+        span.set_status(Status(StatusCode.ERROR, str(e)))
+        raise
+    finally:
+        _current_span.reset(token)
 
 
 def add_span_event(name: str, attributes: Optional[dict] = None) -> None:
@@ -262,7 +276,7 @@ def set_span_attribute(key: str, value) -> None:
         span.set_attribute(key, value)
 
 
-def set_span_status(status: trace.Status) -> None:
+def set_span_status(status: Status) -> None:
     """
     Set the status of the current span.
 
@@ -284,7 +298,7 @@ def record_exception(exception: Exception) -> None:
     span = get_current_span()
     if span and span.is_recording():
         span.record_exception(exception)
-        span.set_status(trace.Status(trace.StatusCode.ERROR, str(exception)))
+        span.set_status(Status(StatusCode.ERROR, str(exception)))
 
 
 # =============================================================================
@@ -293,7 +307,7 @@ def record_exception(exception: Exception) -> None:
 
 def traced(
     name: Optional[str] = None,
-    kind: trace.SpanKind = trace.SpanKind.INTERNAL,
+    kind: int = SpanKind.INTERNAL,
     attributes: Optional[dict] = None,
 ):
     """
@@ -313,9 +327,6 @@ def traced(
         kind: Span kind
         attributes: Span attributes
     """
-    import functools
-    import asyncio
-
     def decorator(func):
         span_name = name or func.__name__
 
@@ -334,3 +345,25 @@ def traced(
         return sync_wrapper
 
     return decorator
+
+
+# =============================================================================
+# COMPATIBILITY EXPORTS
+# =============================================================================
+
+# Create a trace module-like namespace for compatibility
+class trace:
+    """Compatibility namespace for opentelemetry.trace."""
+    SpanKind = SpanKind
+    Status = Status
+    StatusCode = StatusCode
+    Span = NoOpSpan
+    Tracer = NoOpTracer
+
+    @staticmethod
+    def get_tracer(name: str = "taskai") -> NoOpTracer:
+        return get_tracer(name)
+
+    @staticmethod
+    def get_current_span() -> Optional[NoOpSpan]:
+        return get_current_span()

@@ -1,24 +1,255 @@
 """
-Prometheus metrics middleware for FastAPI.
+Metrics middleware for FastAPI.
 
 [Task]: Cloud-Native Implementation
-[Description]: Collects and exposes Prometheus metrics for observability
+[Description]: Collects and exposes metrics for observability (no external dependencies)
 """
 
 import time
-from typing import Callable
+import re
+from typing import Callable, Dict, List, Any
+from collections import defaultdict
+from threading import Lock
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from prometheus_client import (
-    Counter,
-    Histogram,
-    Gauge,
-    Info,
-    generate_latest,
-    CONTENT_TYPE_LATEST,
-    REGISTRY,
-)
+
+
+# =============================================================================
+# IN-MEMORY METRICS STORAGE
+# =============================================================================
+
+class MetricsRegistry:
+    """Simple in-memory metrics registry."""
+
+    def __init__(self):
+        self._lock = Lock()
+        self._counters: Dict[str, Dict[tuple, float]] = defaultdict(lambda: defaultdict(float))
+        self._gauges: Dict[str, Dict[tuple, float]] = defaultdict(lambda: defaultdict(float))
+        self._histograms: Dict[str, Dict[tuple, List[float]]] = defaultdict(lambda: defaultdict(list))
+        self._info: Dict[str, Dict[str, str]] = {}
+        self._metadata: Dict[str, Dict[str, Any]] = {}
+
+    def register_counter(self, name: str, help_text: str, labels: List[str] = None):
+        """Register a counter metric."""
+        self._metadata[name] = {"type": "counter", "help": help_text, "labels": labels or []}
+
+    def register_gauge(self, name: str, help_text: str, labels: List[str] = None):
+        """Register a gauge metric."""
+        self._metadata[name] = {"type": "gauge", "help": help_text, "labels": labels or []}
+
+    def register_histogram(self, name: str, help_text: str, labels: List[str] = None, buckets: List[float] = None):
+        """Register a histogram metric."""
+        self._metadata[name] = {
+            "type": "histogram",
+            "help": help_text,
+            "labels": labels or [],
+            "buckets": buckets or [0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0]
+        }
+
+    def register_info(self, name: str, help_text: str):
+        """Register an info metric."""
+        self._metadata[name] = {"type": "info", "help": help_text}
+
+    def inc_counter(self, name: str, labels: tuple = (), value: float = 1.0):
+        """Increment a counter."""
+        with self._lock:
+            self._counters[name][labels] += value
+
+    def set_gauge(self, name: str, labels: tuple = (), value: float = 0.0):
+        """Set a gauge value."""
+        with self._lock:
+            self._gauges[name][labels] = value
+
+    def inc_gauge(self, name: str, labels: tuple = (), value: float = 1.0):
+        """Increment a gauge."""
+        with self._lock:
+            self._gauges[name][labels] += value
+
+    def dec_gauge(self, name: str, labels: tuple = (), value: float = 1.0):
+        """Decrement a gauge."""
+        with self._lock:
+            self._gauges[name][labels] -= value
+
+    def observe_histogram(self, name: str, labels: tuple = (), value: float = 0.0):
+        """Add an observation to a histogram."""
+        with self._lock:
+            self._histograms[name][labels].append(value)
+
+    def set_info(self, name: str, info: Dict[str, str]):
+        """Set info metric values."""
+        with self._lock:
+            self._info[name] = info
+
+    def generate_metrics(self) -> str:
+        """Generate metrics in Prometheus text format."""
+        lines = []
+
+        with self._lock:
+            # Output counters
+            for name, values in self._counters.items():
+                meta = self._metadata.get(name, {})
+                if meta:
+                    lines.append(f"# HELP {name} {meta.get('help', '')}")
+                    lines.append(f"# TYPE {name} counter")
+                for labels, value in values.items():
+                    label_str = self._format_labels(meta.get('labels', []), labels)
+                    lines.append(f"{name}{label_str} {value}")
+
+            # Output gauges
+            for name, values in self._gauges.items():
+                meta = self._metadata.get(name, {})
+                if meta:
+                    lines.append(f"# HELP {name} {meta.get('help', '')}")
+                    lines.append(f"# TYPE {name} gauge")
+                for labels, value in values.items():
+                    label_str = self._format_labels(meta.get('labels', []), labels)
+                    lines.append(f"{name}{label_str} {value}")
+
+            # Output histograms (simplified - just count and sum)
+            for name, values in self._histograms.items():
+                meta = self._metadata.get(name, {})
+                if meta:
+                    lines.append(f"# HELP {name} {meta.get('help', '')}")
+                    lines.append(f"# TYPE {name} histogram")
+                for labels, observations in values.items():
+                    if observations:
+                        label_str = self._format_labels(meta.get('labels', []), labels)
+                        count = len(observations)
+                        total = sum(observations)
+                        lines.append(f"{name}_count{label_str} {count}")
+                        lines.append(f"{name}_sum{label_str} {total}")
+
+            # Output info metrics
+            for name, info in self._info.items():
+                meta = self._metadata.get(name, {})
+                if meta:
+                    lines.append(f"# HELP {name}_info {meta.get('help', '')}")
+                    lines.append(f"# TYPE {name}_info gauge")
+                info_labels = ",".join(f'{k}="{v}"' for k, v in info.items())
+                lines.append(f"{name}_info{{{info_labels}}} 1")
+
+        return "\n".join(lines) + "\n"
+
+    def _format_labels(self, label_names: List[str], label_values: tuple) -> str:
+        """Format labels for Prometheus output."""
+        if not label_names or not label_values:
+            return ""
+        pairs = [f'{name}="{value}"' for name, value in zip(label_names, label_values)]
+        return "{" + ",".join(pairs) + "}"
+
+
+# Global registry
+REGISTRY = MetricsRegistry()
+
+
+# =============================================================================
+# METRIC WRAPPERS (Compatible API)
+# =============================================================================
+
+class Counter:
+    """Counter metric wrapper."""
+
+    def __init__(self, name: str, help_text: str, labels: List[str] = None):
+        self.name = name
+        self.labels_list = labels or []
+        REGISTRY.register_counter(name, help_text, labels)
+
+    def labels(self, **kwargs) -> "CounterLabeled":
+        label_values = tuple(kwargs.get(label, "") for label in self.labels_list)
+        return CounterLabeled(self.name, label_values)
+
+    def inc(self, value: float = 1.0):
+        REGISTRY.inc_counter(self.name, (), value)
+
+
+class CounterLabeled:
+    """Labeled counter instance."""
+
+    def __init__(self, name: str, label_values: tuple):
+        self.name = name
+        self.label_values = label_values
+
+    def inc(self, value: float = 1.0):
+        REGISTRY.inc_counter(self.name, self.label_values, value)
+
+
+class Gauge:
+    """Gauge metric wrapper."""
+
+    def __init__(self, name: str, help_text: str, labels: List[str] = None):
+        self.name = name
+        self.labels_list = labels or []
+        REGISTRY.register_gauge(name, help_text, labels)
+
+    def labels(self, **kwargs) -> "GaugeLabeled":
+        label_values = tuple(kwargs.get(label, "") for label in self.labels_list)
+        return GaugeLabeled(self.name, label_values)
+
+    def set(self, value: float):
+        REGISTRY.set_gauge(self.name, (), value)
+
+    def inc(self, value: float = 1.0):
+        REGISTRY.inc_gauge(self.name, (), value)
+
+    def dec(self, value: float = 1.0):
+        REGISTRY.dec_gauge(self.name, (), value)
+
+
+class GaugeLabeled:
+    """Labeled gauge instance."""
+
+    def __init__(self, name: str, label_values: tuple):
+        self.name = name
+        self.label_values = label_values
+
+    def set(self, value: float):
+        REGISTRY.set_gauge(self.name, self.label_values, value)
+
+    def inc(self, value: float = 1.0):
+        REGISTRY.inc_gauge(self.name, self.label_values, value)
+
+    def dec(self, value: float = 1.0):
+        REGISTRY.dec_gauge(self.name, self.label_values, value)
+
+
+class Histogram:
+    """Histogram metric wrapper."""
+
+    def __init__(self, name: str, help_text: str, labels: List[str] = None, buckets: List[float] = None):
+        self.name = name
+        self.labels_list = labels or []
+        REGISTRY.register_histogram(name, help_text, labels, buckets)
+
+    def labels(self, **kwargs) -> "HistogramLabeled":
+        label_values = tuple(kwargs.get(label, "") for label in self.labels_list)
+        return HistogramLabeled(self.name, label_values)
+
+    def observe(self, value: float):
+        REGISTRY.observe_histogram(self.name, (), value)
+
+
+class HistogramLabeled:
+    """Labeled histogram instance."""
+
+    def __init__(self, name: str, label_values: tuple):
+        self.name = name
+        self.label_values = label_values
+
+    def observe(self, value: float):
+        REGISTRY.observe_histogram(self.name, self.label_values, value)
+
+
+class Info:
+    """Info metric wrapper."""
+
+    def __init__(self, name: str, help_text: str):
+        self.name = name
+        REGISTRY.register_info(name, help_text)
+
+    def info(self, info_dict: Dict[str, str]):
+        REGISTRY.set_info(self.name, info_dict)
+
 
 # =============================================================================
 # METRICS DEFINITIONS
@@ -111,8 +342,6 @@ def normalize_path(path: str) -> str:
     Normalize request path to reduce cardinality.
     Replaces dynamic segments (UUIDs, IDs) with placeholders.
     """
-    import re
-
     # Replace UUIDs
     path = re.sub(
         r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
@@ -168,7 +397,7 @@ def record_error(error_type: str, endpoint: str):
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     """
-    Middleware to collect Prometheus metrics for HTTP requests.
+    Middleware to collect metrics for HTTP requests.
 
     Tracks:
     - Request count by method, endpoint, and status code
@@ -236,13 +465,16 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 # METRICS ENDPOINT HANDLER
 # =============================================================================
 
+CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
+
+
 async def metrics_endpoint(request: Request) -> Response:
     """
     Handler for /metrics endpoint.
-    Returns Prometheus metrics in text format.
+    Returns metrics in Prometheus text format.
     """
     return Response(
-        content=generate_latest(REGISTRY),
+        content=REGISTRY.generate_metrics(),
         media_type=CONTENT_TYPE_LATEST
     )
 
@@ -266,7 +498,7 @@ def get_metrics_route():
     )
     async def metrics():
         return Response(
-            content=generate_latest(REGISTRY),
+            content=REGISTRY.generate_metrics(),
             media_type=CONTENT_TYPE_LATEST
         )
 

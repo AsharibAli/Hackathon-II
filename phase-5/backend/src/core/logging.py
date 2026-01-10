@@ -1,18 +1,90 @@
 """
-Structured logging configuration using structlog.
+Structured logging configuration using standard Python logging.
 
 [Task]: Cloud-Native Implementation
-[Description]: Production-ready JSON logging with correlation ID support
+[Description]: Production-ready logging with correlation ID support (no structlog dependency)
 """
 
 import logging
 import sys
+import json
 from typing import Any
-
-import structlog
-from structlog.contextvars import merge_contextvars
+from contextvars import ContextVar
+from datetime import datetime, timezone
 
 from core.config import settings
+
+# Context variable for storing additional log context
+_log_context: ContextVar[dict] = ContextVar("log_context", default={})
+
+
+class JSONFormatter(logging.Formatter):
+    """JSON formatter for production logging (Kubernetes/Loki compatible)."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON."""
+        log_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "filename": record.filename,
+            "lineno": record.lineno,
+            "func_name": record.funcName,
+        }
+
+        # Add context variables
+        context = _log_context.get()
+        if context:
+            log_data.update(context)
+
+        # Add extra fields from record
+        if hasattr(record, "extra_fields"):
+            log_data.update(record.extra_fields)
+
+        # Add exception info if present
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(log_data)
+
+
+class ConsoleFormatter(logging.Formatter):
+    """Colored console formatter for development."""
+
+    COLORS = {
+        "DEBUG": "\033[36m",     # Cyan
+        "INFO": "\033[32m",      # Green
+        "WARNING": "\033[33m",   # Yellow
+        "ERROR": "\033[31m",     # Red
+        "CRITICAL": "\033[35m",  # Magenta
+    }
+    RESET = "\033[0m"
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record with colors for console output."""
+        color = self.COLORS.get(record.levelname, self.RESET)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Build base message
+        message = f"{color}{timestamp} [{record.levelname}]{self.RESET} {record.name}: {record.getMessage()}"
+
+        # Add context if present
+        context = _log_context.get()
+        if context:
+            context_str = " ".join(f"{k}={v}" for k, v in context.items())
+            message = f"{message} | {context_str}"
+
+        # Add extra fields if present
+        if hasattr(record, "extra_fields") and record.extra_fields:
+            extras = " ".join(f"{k}={v}" for k, v in record.extra_fields.items())
+            message = f"{message} | {extras}"
+
+        # Add exception info if present
+        if record.exc_info:
+            message = f"{message}\n{self.formatException(record.exc_info)}"
+
+        return message
 
 
 def setup_logging() -> None:
@@ -28,72 +100,44 @@ def setup_logging() -> None:
     # Determine log level from settings
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
 
-    # Configure standard logging
-    logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
-        level=log_level,
-    )
+    # Get root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
 
-    # Shared processors for all environments
-    shared_processors = [
-        # Add context variables (correlation_id, etc.)
-        merge_contextvars,
-        # Add log level
-        structlog.stdlib.add_log_level,
-        # Add logger name
-        structlog.stdlib.add_logger_name,
-        # Add timestamp in ISO format
-        structlog.processors.TimeStamper(fmt="iso"),
-        # Add stack info for exceptions
-        structlog.processors.StackInfoRenderer(),
-        # Format exceptions
-        structlog.processors.format_exc_info,
-        # Add caller information (file, line, function)
-        structlog.processors.CallsiteParameterAdder(
-            [
-                structlog.processors.CallsiteParameter.FILENAME,
-                structlog.processors.CallsiteParameter.LINENO,
-                structlog.processors.CallsiteParameter.FUNC_NAME,
-            ]
-        ),
-    ]
+    # Remove existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
 
-    # Environment-specific configuration
+    # Create handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(log_level)
+
+    # Set formatter based on environment
     if settings.DEBUG:
-        # Development: colored console output
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer(colors=True)
-        ]
+        formatter = ConsoleFormatter()
     else:
-        # Production: JSON output for log aggregation
-        processors = shared_processors + [
-            # Ensure all values are JSON serializable
-            structlog.processors.UnicodeDecoder(),
-            # Render as JSON
-            structlog.processors.JSONRenderer()
-        ]
+        formatter = JSONFormatter()
 
-    structlog.configure(
-        processors=processors,
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
+    handler.setFormatter(formatter)
+    root_logger.addHandler(handler)
+
+    # Reduce noise from third-party libraries
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
-def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str | None = None) -> logging.Logger:
     """
-    Get a configured structlog logger.
+    Get a configured logger.
 
     Args:
         name: Logger name (defaults to module name)
 
     Returns:
-        Configured structlog logger
+        Configured logger
     """
-    return structlog.get_logger(name)
+    return logging.getLogger(name)
 
 
 def bind_context(**kwargs: Any) -> None:
@@ -106,7 +150,9 @@ def bind_context(**kwargs: Any) -> None:
     Args:
         **kwargs: Key-value pairs to bind to context
     """
-    structlog.contextvars.bind_contextvars(**kwargs)
+    current = _log_context.get().copy()
+    current.update(kwargs)
+    _log_context.set(current)
 
 
 def unbind_context(*keys: str) -> None:
@@ -116,16 +162,24 @@ def unbind_context(*keys: str) -> None:
     Args:
         *keys: Keys to remove from context
     """
-    structlog.contextvars.unbind_contextvars(*keys)
+    current = _log_context.get().copy()
+    for key in keys:
+        current.pop(key, None)
+    _log_context.set(current)
 
 
 def clear_context() -> None:
     """Clear all context variables from the current logging context."""
-    structlog.contextvars.clear_contextvars()
+    _log_context.set({})
 
 
 # Create default logger instance
 logger = get_logger("taskai")
+
+
+def _log_with_extra(log_func, message: str, **kwargs: Any) -> None:
+    """Helper to log with extra fields stored in the record."""
+    log_func(message, extra={"extra_fields": kwargs} if kwargs else None)
 
 
 # Log event helpers for common operations
@@ -137,7 +191,8 @@ def log_request_start(
 ) -> None:
     """Log the start of an HTTP request."""
     bind_context(correlation_id=correlation_id)
-    logger.info(
+    _log_with_extra(
+        logger.info,
         "request_started",
         method=method,
         path=path,
@@ -153,7 +208,8 @@ def log_request_end(
     **kwargs: Any
 ) -> None:
     """Log the end of an HTTP request."""
-    logger.info(
+    _log_with_extra(
+        logger.info,
         "request_completed",
         method=method,
         path=path,
@@ -170,15 +226,14 @@ def log_error(
 ) -> None:
     """Log an error event."""
     if error:
-        logger.error(
-            message,
-            error_type=type(error).__name__,
-            error_message=str(error),
-            exc_info=error,
+        extra_data = {
+            "error_type": type(error).__name__,
+            "error_message": str(error),
             **kwargs
-        )
+        }
+        logger.error(message, exc_info=error, extra={"extra_fields": extra_data})
     else:
-        logger.error(message, **kwargs)
+        _log_with_extra(logger.error, message, **kwargs)
 
 
 def log_event_published(
@@ -188,8 +243,9 @@ def log_event_published(
     **kwargs: Any
 ) -> None:
     """Log an event publishing operation."""
-    level = "info" if success else "error"
-    getattr(logger, level)(
+    log_func = logger.info if success else logger.error
+    _log_with_extra(
+        log_func,
         "event_published",
         event_type=event_type,
         topic=topic,
@@ -205,7 +261,8 @@ def log_db_operation(
     **kwargs: Any
 ) -> None:
     """Log a database operation."""
-    logger.debug(
+    _log_with_extra(
+        logger.debug,
         "db_operation",
         operation=operation,
         table=table,
@@ -222,7 +279,7 @@ def log_ai_request(
     **kwargs: Any
 ) -> None:
     """Log an AI/LLM request."""
-    log_data = {
+    log_data: dict[str, Any] = {
         "model": model,
         "success": success,
         **kwargs
@@ -233,9 +290,9 @@ def log_ai_request(
         log_data["tokens"] = tokens
 
     if success:
-        logger.info("ai_request_completed", **log_data)
+        _log_with_extra(logger.info, "ai_request_completed", **log_data)
     else:
-        logger.error("ai_request_failed", **log_data)
+        _log_with_extra(logger.error, "ai_request_failed", **log_data)
 
 
 def log_task_event(
@@ -245,7 +302,8 @@ def log_task_event(
     **kwargs: Any
 ) -> None:
     """Log a task-related event."""
-    logger.info(
+    _log_with_extra(
+        logger.info,
         "task_event",
         action=action,
         task_id=task_id,
@@ -262,7 +320,7 @@ def log_auth_event(
     **kwargs: Any
 ) -> None:
     """Log an authentication event."""
-    log_data = {
+    log_data: dict[str, Any] = {
         "action": action,
         "success": success,
         **kwargs
@@ -273,6 +331,6 @@ def log_auth_event(
         log_data["email"] = email
 
     if success:
-        logger.info("auth_event", **log_data)
+        _log_with_extra(logger.info, "auth_event", **log_data)
     else:
-        logger.warning("auth_event", **log_data)
+        _log_with_extra(logger.warning, "auth_event", **log_data)
