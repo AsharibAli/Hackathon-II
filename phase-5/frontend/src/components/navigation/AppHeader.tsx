@@ -10,6 +10,7 @@ import { LogOut, User, Settings, Moon, Sun, ChevronDown, Home } from "lucide-rea
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { ModeToggle, AppMode } from "./ModeToggle";
+import { NotificationCenter } from "@/components/notifications";
 import { UserProfile } from "@/lib/api";
 import {
   Dialog,
@@ -97,6 +98,9 @@ export function AppHeader({
 
           {/* Right side - User menu & actions */}
           <div className="flex items-center gap-2">
+            {/* Notification center */}
+            <NotificationCenter />
+
             {/* Theme toggle */}
             <Button
               variant="ghost"
