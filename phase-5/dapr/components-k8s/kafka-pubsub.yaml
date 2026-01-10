@@ -1,14 +1,15 @@
-# Dapr Kafka pub/sub component configuration for Docker Compose
+# Dapr Kafka pub/sub component configuration for Kubernetes
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
   name: kafka-pubsub
+  namespace: todo-app
 spec:
   type: pubsub.kafka
   version: v1
   metadata:
     - name: brokers
-      value: "kafka:9092"
+      value: "kafka-cluster-kafka-bootstrap.kafka:9092"
     - name: consumerGroup
       value: "taskai-services"
     - name: authType
