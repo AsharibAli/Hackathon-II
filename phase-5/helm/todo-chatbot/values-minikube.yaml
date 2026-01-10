@@ -13,7 +13,7 @@ backend:
   enabled: true
   replicaCount: 1
   image:
-    repository: todo-chatbot/backend
+    repository: taskai/backend
     pullPolicy: Never  # Use local images in Minikube
     tag: "latest"
   service:
@@ -22,12 +22,14 @@ backend:
     nodePort: 30080  # Access at minikube-ip:30080
   dapr:
     enabled: true
-    appId: backend
+    appId: taskai-backend
     appPort: 8000
     logLevel: debug
   config:
-    databaseUrl: "postgresql://postgres:postgres@postgres:5432/todo_chatbot"
-    secretKey: "dev-secret-key-change-in-production"
+    databaseUrl: "postgresql://taskai:taskai_secret@taskai-postgres:5432/taskai"
+    secretKey: "dev-secret-key-change-in-production-32chars"
+    jwtSecret: "dev-jwt-secret-key-minimum-32-characters-long"
+    openaiApiKey: "sk-placeholder-for-development"
     daprEnabled: "true"
     daprHttpPort: "3500"
     pubsubName: "kafka-pubsub"
@@ -40,15 +42,21 @@ backend:
       cpu: 100m
       memory: 256Mi
   health:
-    initialDelaySeconds: 30
-    periodSeconds: 10
+    livenessPath: /health
+    readinessPath: /ready
+    startupPath: /startup
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
+    startupFailureThreshold: 30
 
 # Frontend service - expose via NodePort for Minikube access
 frontend:
   enabled: true
   replicaCount: 1
   image:
-    repository: todo-chatbot/frontend
+    repository: taskai/frontend
     pullPolicy: Never  # Use local images in Minikube
     tag: "latest"
   service:
@@ -56,7 +64,7 @@ frontend:
     port: 3000
     nodePort: 30000  # Access at minikube-ip:30000
   config:
-    backendUrl: "http://todo-chatbot-backend:8000"
+    backendUrl: "http://taskai-backend:8000"
     nodeEnv: "development"
   resources:
     limits:
@@ -66,15 +74,19 @@ frontend:
       cpu: 100m
       memory: 256Mi
   health:
+    livenessPath: /api/health
+    readinessPath: /api/health
     initialDelaySeconds: 30
-    periodSeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
 
 # Notification service - internal only
 notification-service:
   enabled: true
   replicaCount: 1
   image:
-    repository: todo-chatbot/notification-service
+    repository: taskai/notification-service
     pullPolicy: Never  # Use local images in Minikube
     tag: "latest"
   service:
@@ -82,7 +94,7 @@ notification-service:
     port: 8001
   dapr:
     enabled: true
-    appId: notification-service
+    appId: taskai-notification-service
     appPort: 8001
     logLevel: debug
   config:
@@ -96,13 +108,20 @@ notification-service:
     requests:
       cpu: 50m
       memory: 128Mi
+  health:
+    livenessPath: /health
+    readinessPath: /health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
 
 # Recurring service - internal only
 recurring-service:
   enabled: true
   replicaCount: 1
   image:
-    repository: todo-chatbot/recurring-service
+    repository: taskai/recurring-service
     pullPolicy: Never  # Use local images in Minikube
     tag: "latest"
   service:
@@ -110,11 +129,11 @@ recurring-service:
     port: 8002
   dapr:
     enabled: true
-    appId: recurring-service
+    appId: taskai-recurring-service
     appPort: 8002
     logLevel: debug
   config:
-    backendUrl: "http://todo-chatbot-backend:8000"
+    backendUrl: "http://taskai-backend:8000"
     pubsubName: "kafka-pubsub"
     logLevel: "DEBUG"
     logFormat: "json"
@@ -125,13 +144,20 @@ recurring-service:
     requests:
       cpu: 50m
       memory: 128Mi
+  health:
+    livenessPath: /health
+    readinessPath: /health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
 
 # Enable in-cluster PostgreSQL for Minikube
 postgresql:
   enabled: true
   auth:
     postgresPassword: "postgres"
-    database: todo_chatbot
+    database: taskai
   primary:
     persistence:
       enabled: true
@@ -157,4 +183,4 @@ dapr:
       name: statestore
       type: state.postgresql
       metadata:
-        connectionString: "host=postgres user=postgres password=postgres port=5432 dbname=todo_chatbot sslmode=disable"
+        connectionString: "host=postgres user=postgres password=postgres port=5432 dbname=taskai sslmode=disable"

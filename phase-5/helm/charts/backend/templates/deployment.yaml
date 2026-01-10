@@ -62,6 +62,18 @@ spec:
                   name: {{ include "backend.fullname" . }}-secrets
                   key: secret-key
                   optional: true
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "backend.fullname" . }}-secrets
+                  key: jwt-secret
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "backend.fullname" . }}-secrets
+                  key: openai-api-key
+                  optional: true
             - name: DAPR_ENABLED
               value: {{ .Values.config.daprEnabled | quote }}
             - name: DAPR_HTTP_PORT
@@ -70,13 +82,23 @@ spec:
               value: {{ .Values.config.pubsubName | quote }}
             - name: LOG_LEVEL
               value: {{ .Values.config.logLevel | quote }}
+          {{- if .Values.health.startupPath }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.health.startupPath }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: {{ .Values.health.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.health.startupFailureThreshold | default 30 }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.health.livenessPath }}
               port: http
             initialDelaySeconds: {{ .Values.health.initialDelaySeconds }}
             periodSeconds: {{ .Values.health.periodSeconds }}
-            timeoutSeconds: {{ .Values.health.timeoutSeconds }}
+            timeoutSeconds: {{ .Values.health.timeoutSeconds | default 5 }}
             failureThreshold: {{ .Values.health.failureThreshold }}
           readinessProbe:
             httpGet:
@@ -84,7 +106,7 @@ spec:
               port: http
             initialDelaySeconds: {{ .Values.health.initialDelaySeconds }}
             periodSeconds: {{ .Values.health.periodSeconds }}
-            timeoutSeconds: {{ .Values.health.timeoutSeconds }}
+            timeoutSeconds: {{ .Values.health.timeoutSeconds | default 5 }}
             failureThreshold: {{ .Values.health.failureThreshold }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
