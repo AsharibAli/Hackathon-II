@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, Response
 from sqlmodel import Session, select
 import httpx
 
-from ..core.database import get_session
-from ..core.config import settings
+from core.database import get_session
+from core.config import settings
 
 router = APIRouter(tags=["health"])
 

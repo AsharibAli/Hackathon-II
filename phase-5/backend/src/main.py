@@ -29,6 +29,7 @@ from api import tasks as tasks_router
 from api import chat as chat_router
 from api import conversations as conversations_router
 from api import password_reset as password_reset_router
+from api import health as health_router
 from services.reminder_scheduler import reminder_scheduler
 from services.events.publisher import event_publisher
 
@@ -50,32 +51,32 @@ async def graceful_shutdown():
         return
     _shutting_down = True
 
-    logger.info("graceful_shutdown_started")
+    logger.info("Graceful shutdown started")
 
     try:
         # Create shutdown tasks with timeout
         async with asyncio.timeout(SHUTDOWN_TIMEOUT):
             # Stop reminder scheduler
-            logger.info("stopping_reminder_scheduler")
+            logger.info("Stopping reminder scheduler")
             await reminder_scheduler.stop()
-            logger.info("reminder_scheduler_stopped")
+            logger.info("Reminder scheduler stopped")
 
             # Close event publisher HTTP client
-            logger.info("closing_event_publisher")
+            logger.info("Closing event publisher")
             await event_publisher.close()
-            logger.info("event_publisher_closed")
+            logger.info("Event publisher closed")
 
             # Shutdown tracing (flush spans)
-            logger.info("shutting_down_tracing")
+            logger.info("Shutting down tracing")
             shutdown_tracing()
-            logger.info("tracing_shutdown_complete")
+            logger.info("Tracing shutdown complete")
 
     except asyncio.TimeoutError:
-        logger.warning("shutdown_timeout", timeout_seconds=SHUTDOWN_TIMEOUT)
+        logger.warning(f"Shutdown timeout after {SHUTDOWN_TIMEOUT} seconds")
     except Exception as e:
-        logger.error("shutdown_error", error=str(e))
+        logger.error(f"Shutdown error: {e}")
 
-    logger.info("graceful_shutdown_complete")
+    logger.info("Graceful shutdown complete")
 
 
 @asynccontextmanager
@@ -85,25 +86,25 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events with graceful handling.
     """
     # Startup
-    logger.info("application_starting", app_name=settings.APP_NAME, version=settings.APP_VERSION)
+    logger.info(f"Application starting: {settings.APP_NAME} v{settings.APP_VERSION}")
 
     # Initialize tracing
-    logger.info("initializing_tracing")
+    logger.info("Initializing tracing")
     setup_tracing(app_name=settings.APP_NAME, app_version=settings.APP_VERSION)
     instrument_httpx()  # Instrument outgoing HTTP calls
-    logger.info("tracing_initialized")
+    logger.info("Tracing initialized")
 
     # Create database tables
-    logger.info("creating_database_tables")
+    logger.info("Creating database tables")
     create_db_and_tables()
-    logger.info("database_tables_created")
+    logger.info("Database tables created")
 
     # Start reminder scheduler (Phase 5)
-    logger.info("starting_reminder_scheduler")
+    logger.info("Starting reminder scheduler")
     await reminder_scheduler.start()
-    logger.info("reminder_scheduler_started")
+    logger.info("Reminder scheduler started")
 
-    logger.info("application_startup_complete", status="ready")
+    logger.info("Application startup complete - ready")
 
     yield
 
@@ -174,6 +175,9 @@ app.include_router(password_reset_router.router, prefix="/api/auth", tags=["Pass
 app.include_router(tasks_router.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(chat_router.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(conversations_router.router, prefix="/api/conversations", tags=["Conversations"])
+
+# Health check routes (for Kubernetes probes)
+app.include_router(health_router.router, tags=["Health"])
 
 # Observability Routes
 app.include_router(get_metrics_route(), tags=["Observability"])
