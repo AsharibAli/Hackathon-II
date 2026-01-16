@@ -8,16 +8,16 @@
 global:
   # DigitalOcean Container Registry (DOCR)
   # Replace <your-registry> with your DOCR registry name
-  imageRegistry: "registry.digitalocean.com/<your-registry>"
+  imageRegistry: "registry.digitalocean.com/taskai-registry"
   imagePullSecrets:
-    - name: docr-credentials
+    - name: do-registry
   namespace: todo-app
 
   # Environment identification
   environment: production
 
   # Domain configuration (used by ingress)
-  domain: ""  # Set to your domain, e.g., "taskai.example.com"
+  domain: "taskai.example.com"  # Set to your domain, e.g., "taskai.example.com"
 
 # =============================================================================
 # BACKEND SERVICE
@@ -92,11 +92,14 @@ backend:
     enabled: true
     minAvailable: 2
 
-  # Pod security context
+  # Pod security context (pod-level)
+  podSecurityContext:
+    fsGroup: 1000
+
+  # Container security context
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
-    fsGroup: 1000
 
   # Service account
   serviceAccount:
@@ -150,10 +153,14 @@ frontend:
     enabled: true
     minAvailable: 2
 
+  # Pod security context (pod-level)
+  podSecurityContext:
+    fsGroup: 1001
+
+  # Container security context
   securityContext:
     runAsNonRoot: true
     runAsUser: 1001
-    fsGroup: 1001
 
 # =============================================================================
 # NOTIFICATION SERVICE
@@ -352,7 +359,7 @@ ingress:
     # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
 
   hosts:
-    - host: ""  # Set to your domain, e.g., "taskai.example.com"
+    - host: "taskai.example.com"  # Set to your domain, e.g., "taskai.example.com"
       paths:
         # API routes to backend
         - path: /api
@@ -373,7 +380,7 @@ ingress:
   tls:
     - secretName: taskai-tls
       hosts:
-        - ""  # Set to your domain
+        - "taskai.example.com"  # Set to your domain
 
 # =============================================================================
 # NETWORK POLICIES
@@ -455,7 +462,7 @@ certManager:
   clusterIssuer:
     enabled: true
     name: letsencrypt-prod
-    email: ""  # Set to your email for Let's Encrypt notifications
+    email: "admin@example.com"  # Set to your real email for Let's Encrypt notifications
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef: letsencrypt-prod-key
     solvers:
