@@ -17,7 +17,7 @@ global:
   environment: production
 
   # Domain configuration (used by ingress)
-  domain: "taskai.example.com"  # Set to your domain, e.g., "taskai.example.com"
+  domain: "taskai.asharib.xyz"  # Production domain
 
 # =============================================================================
 # BACKEND SERVICE
@@ -38,7 +38,7 @@ backend:
 
   # Dapr sidecar configuration
   dapr:
-    enabled: true
+    enabled: false  # Temporarily disabled - re-enable after fixing Kafka connectivity
     appId: backend
     appPort: 8000
     logLevel: warn
@@ -81,7 +81,7 @@ backend:
   # Health check configuration
   health:
     livenessPath: /health
-    readinessPath: /ready
+    readinessPath: /health  # Changed from /ready since /ready checks Dapr availability
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
@@ -128,6 +128,8 @@ frontend:
     nodeEnv: "production"
     # Next.js public runtime config
     nextPublicApiUrl: ""  # Set to your API URL if needed
+    # Google OAuth Client ID (public, safe to expose)
+    googleClientId: "756449884594-rebhkqrh2f1oddeebj2uu4fsn7t120gh.apps.googleusercontent.com"
 
   resources:
     limits:
@@ -179,7 +181,7 @@ notification-service:
     port: 8001
 
   dapr:
-    enabled: true
+    enabled: false  # Temporarily disabled - re-enable after fixing Kafka connectivity
     appId: notification-service
     appPort: 8001
     logLevel: warn
@@ -225,7 +227,7 @@ recurring-service:
     port: 8002
 
   dapr:
-    enabled: true
+    enabled: false  # Temporarily disabled - re-enable after fixing Kafka connectivity
     appId: recurring-service
     appPort: 8002
     logLevel: warn
@@ -359,7 +361,7 @@ ingress:
     # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
 
   hosts:
-    - host: "taskai.example.com"  # Set to your domain, e.g., "taskai.example.com"
+    - host: "taskai.asharib.xyz"  # Production domain
       paths:
         # API routes to backend
         - path: /api
@@ -380,7 +382,7 @@ ingress:
   tls:
     - secretName: taskai-tls
       hosts:
-        - "taskai.example.com"  # Set to your domain
+        - "taskai.asharib.xyz"  # Production domain
 
 # =============================================================================
 # NETWORK POLICIES
@@ -460,7 +462,7 @@ observability:
 certManager:
   # ClusterIssuer for Let's Encrypt
   clusterIssuer:
-    enabled: true
+    enabled: false  # Disabled because ClusterIssuer already exists and is managed outside Helm
     name: letsencrypt-prod
     email: "admin@example.com"  # Set to your real email for Let's Encrypt notifications
     server: https://acme-v02.api.letsencrypt.org/directory

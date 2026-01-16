@@ -63,6 +63,8 @@ affinity: {}
 config:
   backendUrl: "http://backend:8000"
   nodeEnv: "production"
+  # Google OAuth Client ID (public, safe to expose)
+  googleClientId: ""
 
 # Health check configuration
 health:

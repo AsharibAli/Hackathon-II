@@ -3,7 +3,10 @@
  * Handles authentication, request/response formatting, and error handling.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Hardcoded to empty string to make all API calls relative to the current domain
+// This ensures browser requests go through the ingress (e.g., https://taskai.asharib.xyz/api/...)
+// regardless of environment variables or build-time configuration
+const API_URL = "";
 
 /**
  * Custom error class for API errors.
