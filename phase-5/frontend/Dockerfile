@@ -28,7 +28,9 @@ COPY . .
 
 # Build arguments for environment variables
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
+# Google OAuth Client ID - safe to be public as it's designed to be exposed to browsers
+# This is not a secret and is meant to identify your application to Google's OAuth service
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID="756449884594-rebhkqrh2f1oddeebj2uu4fsn7t120gh.apps.googleusercontent.com"
 
 # Set environment variables for build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
