@@ -26,6 +26,7 @@ import { LandingHeader } from "@/components/navigation";
 export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewMode, setPreviewMode] = useState<"gui" | "cui">("gui");
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -307,39 +308,108 @@ export default function HomePage() {
                 <div className="absolute -bottom-4 -left-4 h-32 w-32 bg-accent/10 rounded-full blur-2xl" />
 
                 {/* Mock interface */}
-                <div className="relative space-y-4">
+                <div className="relative space-y-4 min-h-[280px]">
                   <div className="flex items-center justify-between pb-4 border-b">
-                    <span className="font-display text-lg font-semibold">
-                      My Tasks
-                    </span>
-                    <div className="flex gap-1">
-                      <div className="h-8 w-8 rounded-lg bg-muted" />
-                      <div className="h-8 w-8 rounded-lg bg-primary/10" />
+                    <div className="flex items-center gap-2">
+                       <span className="font-display text-lg font-semibold">
+                        {previewMode === "gui" ? "My Tasks" : "TaskAI Chat"}
+                      </span>
+                      <div className="flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold uppercase tracking-wider text-primary">
+                        {previewMode === "gui" ? "GUI" : "CUI"}
+                      </div>
+                    </div>
+                    
+                    {/* Interface Toggle Switch */}
+                    <div className="flex items-center bg-muted rounded-lg p-1">
+                      <button
+                        onClick={() => setPreviewMode("gui")}
+                        className={`p-1.5 rounded-md transition-all ${
+                          previewMode === "gui"
+                            ? "bg-card shadow-sm text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Traditional UI"
+                      >
+                        <ListTodo className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setPreviewMode("cui")}
+                        className={`p-1.5 rounded-md transition-all ${
+                          previewMode === "cui"
+                            ? "bg-card shadow-sm text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Conversational UI"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Mock task items */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="h-5 w-5 rounded border-2 border-muted-foreground/30" />
-                    <span className="flex-1 text-sm">Review quarterly report</span>
-                    <span className="text-xs px-2 py-1 rounded-full priority-high">
-                      high
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="h-5 w-5 rounded border-2 border-muted-foreground/30" />
-                    <span className="flex-1 text-sm">Call with design team</span>
-                    <span className="text-xs px-2 py-1 rounded-full priority-medium">
-                      medium
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="h-5 w-5 rounded border-2 border-muted-foreground/30" />
-                    <span className="flex-1 text-sm">Update documentation</span>
-                    <span className="text-xs px-2 py-1 rounded-full priority-low">
-                      low
-                    </span>
-                  </div>
+                  {previewMode === "gui" ? (
+                    <div className="space-y-4 animate-fade-in">
+                      {/* Mock task items */}
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-colors cursor-default group">
+                        <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors" />
+                        <span className="flex-1 text-sm font-medium">Review quarterly report</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase priority-high">
+                          high
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-colors cursor-default group">
+                        <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors" />
+                        <span className="flex-1 text-sm font-medium">Call with design team</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase priority-medium">
+                          medium
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-colors cursor-default group">
+                        <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors" />
+                        <span className="flex-1 text-sm font-medium">Update documentation</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase priority-low">
+                          low
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 animate-fade-in">
+                      {/* Chat Messages */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-2 max-w-[85%]">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Sparkles className="h-3 w-3 text-primary" />
+                          </div>
+                          <div className="p-2.5 rounded-2xl rounded-tl-none bg-muted/50 text-xs leading-relaxed">
+                            Hello! You have 3 pending tasks. What would you like to do?
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2 ml-auto max-w-[85%]">
+                          <div className="p-2.5 rounded-2xl rounded-tr-none bg-primary text-primary-foreground text-xs shadow-soft leading-relaxed">
+                            Show my high priority tasks.
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-2 max-w-[85%]">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Sparkles className="h-3 w-3 text-primary" />
+                          </div>
+                          <div className="p-2.5 rounded-2xl rounded-tl-none bg-muted/50 text-xs leading-relaxed">
+                            You have one high priority task: <span className="font-semibold italic">&quot;Review quarterly report&quot;</span>. 
+                            Would you like me to mark it as complete?
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Input mockup */}
+                      <div className="mt-4 p-2.5 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Type a command...</span>
+                        <div className="ml-auto h-5 w-5 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+                          <ArrowRight className="h-3 w-3" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -386,6 +456,17 @@ export default function HomePage() {
               <Logo size="md" />
               <span className="font-display font-semibold">TaskAI</span>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Build with ❤️ by{" "}
+              <Link
+                href="https://asharib.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+              >
+                Asharib Ali
+              </Link>
+            </p>
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} TaskAI. Intelligent task
               management.
