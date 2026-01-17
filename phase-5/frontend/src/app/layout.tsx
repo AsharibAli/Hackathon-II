@@ -7,6 +7,7 @@ import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
+import Script from "next/script";
 
 // Display font - Elegant serif for headings
 const cormorant = Cormorant_Garamond({
@@ -67,6 +68,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+          {/* Google Analytics - for tracking website traffic */}
+      <Script
+        strategy="afterInteractive"
+        src="https://www.googletagmanager.com/gtag/js?id=G-W723PJR35E"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    gtag('js', new Date());
+                    gtag('config', 'G-W723PJR35E');
+        `}
+      </Script>
       <body
         className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable} font-sans`}
       >
