@@ -1,0 +1,242 @@
+# Helm Values Override for Enabling Dapr
+# Use this file to upgrade your deployment with Dapr enabled
+# Command: helm upgrade todo-chatbot ./helm/todo-chatbot -n todo-app -f helm-values-dapr-enabled.yaml
+
+# Global settings
+global:
+  domain: taskai.asharib.xyz
+  environment: production
+  imageRegistry: registry.digitalocean.com/taskai-registry
+  imagePullSecrets:
+    - name: do-registry
+  namespace: todo-app
+
+# Backend service - ENABLE DAPR
+backend:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: backend
+    pullPolicy: Always
+    tag: "latest"
+
+  # ✅ ENABLE DAPR SIDECAR
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: info
+
+  config:
+    daprEnabled: "true"
+    daprHttpPort: "3500"
+    pubsubName: kafka-pubsub
+    logLevel: WARNING
+    logFormat: json
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+  health:
+    livenessPath: /health
+    readinessPath: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Frontend service
+frontend:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: frontend
+    pullPolicy: Always
+    tag: "1.0.12"
+
+  config:
+    backendUrl: http://todo-chatbot-backend:8000
+    nodeEnv: production
+    googleClientId: 756449884594-rebhkqrh2f1oddeebj2uu4fsn7t120gh.apps.googleusercontent.com
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Notification service - ENABLE DAPR
+notification-service:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: notification-service
+    pullPolicy: Always
+    tag: "latest"
+
+  # ✅ ENABLE DAPR SIDECAR
+  dapr:
+    enabled: true
+    appId: notification-service
+    appPort: 8001
+    logLevel: info
+
+  config:
+    pubsubName: kafka-pubsub
+    logLevel: WARNING
+    logFormat: json
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Recurring service - ENABLE DAPR
+recurring-service:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: recurring-service
+    pullPolicy: Always
+    tag: "latest"
+
+  # ✅ ENABLE DAPR SIDECAR
+  dapr:
+    enabled: true
+    appId: recurring-service
+    appPort: 8002
+    logLevel: info
+
+  config:
+    backendUrl: http://todo-chatbot-backend:8000
+    pubsubName: kafka-pubsub
+    logLevel: WARNING
+    logFormat: json
+
+  service:
+    type: ClusterIP
+    port: 8002
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# External database configuration
+externalDatabase:
+  enabled: true
+  existingSecret: database-credentials
+  existingSecretUsernameKey: username
+  existingSecretPasswordKey: password
+  host: ""  # Set via secret
+  port: 25060
+  database: todo_chatbot
+  sslMode: require
+  poolSize: 10
+  maxOverflow: 20
+
+# PostgreSQL - disabled (using external database)
+postgresql:
+  enabled: false
+
+# Dapr global configuration
+dapr:
+  enabled: true
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  hosts:
+    - host: taskai.asharib.xyz
+      paths:
+        - path: /api
+          pathType: Prefix
+          port: 8000
+          service: backend
+        - path: /health
+          pathType: Exact
+          port: 8000
+          service: backend
+        - path: /
+          pathType: Prefix
+          port: 3000
+          service: frontend
+  tls:
+    - hosts:
+        - taskai.asharib.xyz
+      secretName: taskai-tls
