@@ -1,0 +1,63 @@
+# Dapr Kafka Pub/Sub Component for DigitalOcean
+# This component enables event-driven communication between services via Kafka
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: todo-app
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker endpoints (from existing secret)
+    - name: brokers
+      secretKeyRef:
+        name: kafka-credentials
+        key: brokers
+
+    # SASL Authentication
+    - name: authType
+      value: "password"
+    - name: saslUsername
+      secretKeyRef:
+        name: kafka-credentials
+        key: username
+    - name: saslPassword
+      secretKeyRef:
+        name: kafka-credentials
+        key: password
+    - name: saslMechanism
+      value: "SCRAM-SHA-512"
+
+    # TLS configuration (required for managed Kafka)
+    - name: tls
+      value: "true"
+    # skipVerify set to true for DigitalOcean Managed Kafka
+    # (DigitalOcean uses self-signed certs that aren't in default trust store)
+    - name: skipVerify
+      value: "true"
+
+    # Consumer configuration
+    - name: consumerGroup
+      value: "todo-chatbot"
+    - name: initialOffset
+      value: "oldest"
+
+    # Producer configuration
+    - name: maxMessageBytes
+      value: "1048576"  # 1MB
+    - name: clientID
+      value: "todo-chatbot-producer"
+
+    # Retry configuration
+    - name: consumeRetryInterval
+      value: "100ms"
+    - name: publishRetryCount
+      value: "3"
+
+    # Heartbeat and session configuration
+    - name: heartbeatInterval
+      value: "3s"
+    - name: sessionTimeout
+      value: "30s"

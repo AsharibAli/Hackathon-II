@@ -1,0 +1,15 @@
+# Dapr Subscription for Task Events
+# Routes task.completed events to the Recurring Service
+# Note: In v2alpha1, scopes are not supported. All apps with dapr.io/enabled will receive events.
+# Filtering is done at the application level in /api/events/task endpoint.
+
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: task-events-subscription
+  namespace: todo-app
+spec:
+  pubsubname: kafka-pubsub
+  topic: task-events
+  routes:
+    default: /api/events/task
