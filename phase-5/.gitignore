@@ -226,3 +226,9 @@ docs/_build/
 # Only ignore generated artifacts within them
 .specify/.cache/
 specs/**/*.tmp
+
+
+============================================
+# Secrets
+# ============================================
+secrets/
