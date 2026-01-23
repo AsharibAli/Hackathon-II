@@ -4,9 +4,9 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { LogOut, User, Settings, Moon, Sun, ChevronDown, Home } from "lucide-react";
+import { LogOut, User, Settings, Moon, Sun, ChevronDown, Home, Bell } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { ModeToggle, AppMode } from "./ModeToggle";
@@ -53,6 +53,7 @@ export function AppHeader({
   const [editName, setEditName] = useState(user?.full_name || "");
   const [editPicture, setEditPicture] = useState(user?.profile_picture || "");
   const { theme, setTheme } = useTheme();
+  const notificationTriggerRef = useRef<HTMLButtonElement>(null);
 
   const handleSaveProfile = () => {
     if (onUpdateProfile) {
@@ -82,7 +83,7 @@ export function AppHeader({
   return (
     <>
       <header className="h-16 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container-wide h-full flex items-center justify-between">
+        <div className="container-wide relative h-full flex items-center justify-between">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
             <Logo size="md" />
@@ -97,21 +98,21 @@ export function AppHeader({
           </div>
 
           {/* Right side - User menu & actions */}
-          <div className="flex items-center gap-2">
-            {/* Notification center */}
-            <NotificationCenter />
-
-            {/* Theme toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Header actions (desktop only) */}
+            <div className="hidden items-center gap-2 sm:flex">
+              <NotificationCenter />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
 
             {/* User dropdown menu */}
             <DropdownMenu>
@@ -148,30 +149,57 @@ export function AppHeader({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {onUpdateProfile && (
-                  <DropdownMenuItem onClick={handleOpenProfile}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Profile Settings
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem asChild>
                   <Link href="/home">
                     <Home className="mr-2 h-4 w-4" />
                     Home Page
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="md:hidden"
+                {onUpdateProfile && (
+                  <DropdownMenuItem onClick={handleOpenProfile}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Profile Settings
+                  </DropdownMenuItem>
+                )}
+                <div
+                  className="flex flex-col gap-1 px-2 py-1 sm:hidden"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
-                  {theme === "dark" ? (
-                    <Sun className="mr-2 h-4 w-4" />
-                  ) : (
-                    <Moon className="mr-2 h-4 w-4" />
-                  )}
-                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                  <NotificationCenter
+                    className="absolute -left-[9999px] top-0 opacity-0 pointer-events-none"
+                    triggerRef={notificationTriggerRef}
+                  />
+                  <div
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => notificationTriggerRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        notificationTriggerRef.current?.click();
+                      }
+                    }}
+                  >
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                    <span>Notifications</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="h-9 justify-start gap-2 px-2 text-sm text-foreground hover:bg-muted"
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    {theme === "dark"
+                      ? "Switch to Light Mode"
+                      : "Switch to Dark Mode"}
+                  </Button>
+                </div>
                 <DropdownMenuItem
                   onClick={onLogout}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"

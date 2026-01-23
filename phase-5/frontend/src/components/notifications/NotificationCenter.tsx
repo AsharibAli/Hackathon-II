@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type Ref } from "react";
 import { Bell, BellRing, Check, Clock, Calendar, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,9 +30,13 @@ interface Notification {
 
 interface NotificationCenterProps {
   className?: string;
+  triggerRef?: Ref<HTMLButtonElement>;
 }
 
-export function NotificationCenter({ className }: NotificationCenterProps) {
+export function NotificationCenter({
+  className,
+  triggerRef,
+}: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
@@ -190,6 +194,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="ghost"
           size="icon"
           className={cn(

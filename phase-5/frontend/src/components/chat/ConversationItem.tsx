@@ -34,7 +34,6 @@ export function ConversationItem({
 }: ConversationItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conversation.title || "");
-  const [showActions, setShowActions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -86,8 +85,6 @@ export function ConversationItem({
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       )}
       onClick={onSelect}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => !isEditing && setShowActions(false)}
     >
       {isEditing ? (
         <div
@@ -126,10 +123,7 @@ export function ConversationItem({
 
           {/* Dropdown menu */}
           <div
-            className={cn(
-              "flex-shrink-0 transition-opacity duration-200",
-              showActions ? "opacity-100" : "opacity-0"
-            )}
+            className="flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <DropdownMenu>
