@@ -458,14 +458,6 @@ jobs:
 
 ---
 
-## Related Documentation
-
-- [DEPLOYMENT-ANALYSIS.md](../DEPLOYMENT-ANALYSIS.md) - Complete deployment analysis
-- [DEPLOY-DAPR-GUIDE.md](../DEPLOY-DAPR-GUIDE.md) - Dapr deployment guide
-- [DEPLOYMENT-SUCCESS.md](../DEPLOYMENT-SUCCESS.md) - Testing instructions
-
----
-
 ## Support
 
 For issues with deployment scripts:

@@ -102,31 +102,31 @@ TaskAI is built as a distributed system with:
 
 ### 🎯 **Task Management**
 
-| Feature | Description |
-|---------|-------------|
-| **CRUD Operations** | Complete Create, Read, Update, Delete with user isolation |
-| **Priority Levels** | Low, Medium, High priority with visual indicators |
-| **Due Dates** | Natural language date parsing ("tomorrow", "next Friday") |
-| **Reminders** | Background scheduler for email notifications |
-| **Recurring Tasks** | Daily, Weekly, Monthly patterns with automatic creation |
-| **Tags** | Organize tasks with reusable, case-insensitive tags |
-| **Search** | Full-text search across titles and descriptions |
-| **Filtering** | Multi-criteria filtering (priority, tags, completion, overdue) |
-| **Sorting** | Sort by created date, due date, priority, title |
+| Feature             | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| **CRUD Operations** | Complete Create, Read, Update, Delete with user isolation      |
+| **Priority Levels** | Low, Medium, High priority with visual indicators              |
+| **Due Dates**       | Natural language date parsing ("tomorrow", "next Friday")      |
+| **Reminders**       | Background scheduler for email notifications                   |
+| **Recurring Tasks** | Daily, Weekly, Monthly patterns with automatic creation        |
+| **Tags**            | Organize tasks with reusable, case-insensitive tags            |
+| **Search**          | Full-text search across titles and descriptions                |
+| **Filtering**       | Multi-criteria filtering (priority, tags, completion, overdue) |
+| **Sorting**         | Sort by created date, due date, priority, title                |
 
 ### 🤖 **AI-Powered Chat Interface**
 
 **18 MCP Tools Available:**
 
-| Category | Tools |
-|----------|-------|
-| **Core Operations** | `add_task`, `list_tasks`, `complete_task`, `update_task`, `delete_task` |
-| **Priority Management** | `set_priority`, `filter_by_priority` |
-| **Tag Management** | `add_tag`, `remove_tag`, `filter_by_tag` |
-| **Due Date Management** | `set_due_date`, `show_overdue` |
-| **Search & Filter** | `search_tasks`, `combined_filter`, `sort_tasks` |
-| **Reminders** | `set_reminder` |
-| **Recurrence** | `set_recurrence` |
+| Category                | Tools                                                                   |
+| ----------------------- | ----------------------------------------------------------------------- |
+| **Core Operations**     | `add_task`, `list_tasks`, `complete_task`, `update_task`, `delete_task` |
+| **Priority Management** | `set_priority`, `filter_by_priority`                                    |
+| **Tag Management**      | `add_tag`, `remove_tag`, `filter_by_tag`                                |
+| **Due Date Management** | `set_due_date`, `show_overdue`                                          |
+| **Search & Filter**     | `search_tasks`, `combined_filter`, `sort_tasks`                         |
+| **Reminders**           | `set_reminder`                                                          |
+| **Recurrence**          | `set_recurrence`                                                        |
 
 **Natural Language Understanding:**
 - "Show me high priority tasks due this week"
@@ -245,12 +245,12 @@ Kafka Topics (task-events, reminders)
 
 ### **Microservices Breakdown**
 
-| Service | Port | Purpose | Tech Stack |
-|---------|------|---------|------------|
-| **Frontend** | 3000 | User interface (Chat + Tasks UI) | Next.js 14, TypeScript, Tailwind CSS, Shadcn/ui |
-| **Backend API** | 8000 | Core business logic, authentication, task management | FastAPI, SQLModel, PostgreSQL, OpenAI, MCP |
-| **Recurring Service** | 8002 | Process task.completed events, create recurring instances | FastAPI, Dapr subscriber |
-| **Notification Service** | 8001 | Send reminder notifications via email | FastAPI, Resend API, Dapr subscriber |
+| Service                  | Port | Purpose                                                   | Tech Stack                                      |
+| ------------------------ | ---- | --------------------------------------------------------- | ----------------------------------------------- |
+| **Frontend**             | 3000 | User interface (Chat + Tasks UI)                          | Next.js 16, TypeScript, Tailwind CSS, Shadcn/ui |
+| **Backend API**          | 8000 | Core business logic, authentication, task management      | FastAPI, SQLModel, PostgreSQL, OpenAI, MCP      |
+| **Recurring Service**    | 8002 | Process task.completed events, create recurring instances | FastAPI, Dapr subscriber                        |
+| **Notification Service** | 8001 | Send reminder notifications via email                     | FastAPI, Resend API, Dapr subscriber            |
 
 ### **Data Model (PostgreSQL)**
 
@@ -293,7 +293,7 @@ messages (id, conversation_id, role, content, created_at)
   - Structlog (structured logging)
 
 ### **Frontend**
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript 5.x
 - **Styling**: Tailwind CSS 3.x
 - **UI Components**: Shadcn/ui (Radix UI primitives)
@@ -712,7 +712,7 @@ phase-5/
 │   ├── Dockerfile                # Container image
 │   └── pyproject.toml            # Python dependencies
 │
-├── frontend/                     # Next.js 14 frontend
+├── frontend/                     # Next.js 16 frontend
 │   ├── src/
 │   │   ├── app/                  # App Router pages
 │   │   │   ├── layout.tsx       # Root layout (100 lines)
@@ -804,36 +804,36 @@ phase-5/
 
 #### **Backend Configuration**
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | - | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | - | Secret key for JWT signing (min 32 chars) |
-| `JWT_ALGORITHM` | No | HS256 | JWT algorithm |
-| `JWT_EXPIRATION_HOURS` | No | 24 | Token expiration time |
-| `CORS_ORIGINS` | No | * | Comma-separated allowed origins |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key for chat |
-| `OPENAI_MODEL` | No | gpt-4.1-2025-04-14 | OpenAI model to use |
-| `RESEND_API_KEY` | No | - | Resend API key for emails |
-| `RESEND_FROM_EMAIL` | No | onboarding@resend.dev | Email sender address |
-| `DAPR_ENABLED` | No | true | Enable Dapr integration |
-| `DAPR_HTTP_PORT` | No | 3500 | Dapr sidecar HTTP port |
-| `PUBSUB_NAME` | No | kafka-pubsub | Dapr pub/sub component name |
-| `REMINDER_POLL_INTERVAL` | No | 60 | Reminder check interval (seconds) |
-| `REMINDER_SCHEDULER_ENABLED` | No | true | Enable reminder scheduler |
-| `DEBUG` | No | false | Enable debug logging |
+| Variable                     | Required | Default               | Description                               |
+| ---------------------------- | -------- | --------------------- | ----------------------------------------- |
+| `DATABASE_URL`               | Yes      | -                     | PostgreSQL connection string              |
+| `JWT_SECRET`                 | Yes      | -                     | Secret key for JWT signing (min 32 chars) |
+| `JWT_ALGORITHM`              | No       | HS256                 | JWT algorithm                             |
+| `JWT_EXPIRATION_HOURS`       | No       | 24                    | Token expiration time                     |
+| `CORS_ORIGINS`               | No       | *                     | Comma-separated allowed origins           |
+| `OPENAI_API_KEY`             | Yes      | -                     | OpenAI API key for chat                   |
+| `OPENAI_MODEL`               | No       | gpt-4.1-2025-04-14    | OpenAI model to use                       |
+| `RESEND_API_KEY`             | No       | -                     | Resend API key for emails                 |
+| `RESEND_FROM_EMAIL`          | No       | onboarding@resend.dev | Email sender address                      |
+| `DAPR_ENABLED`               | No       | true                  | Enable Dapr integration                   |
+| `DAPR_HTTP_PORT`             | No       | 3500                  | Dapr sidecar HTTP port                    |
+| `PUBSUB_NAME`                | No       | kafka-pubsub          | Dapr pub/sub component name               |
+| `REMINDER_POLL_INTERVAL`     | No       | 60                    | Reminder check interval (seconds)         |
+| `REMINDER_SCHEDULER_ENABLED` | No       | true                  | Enable reminder scheduler                 |
+| `DEBUG`                      | No       | false                 | Enable debug logging                      |
 
 #### **Frontend Configuration**
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NEXT_PUBLIC_API_URL` | No | '' | Backend API URL (empty = same domain) |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | No | - | Google OAuth client ID (optional) |
+| Variable                       | Required | Default | Description                           |
+| ------------------------------ | -------- | ------- | ------------------------------------- |
+| `NEXT_PUBLIC_API_URL`          | No       | ''      | Backend API URL (empty = same domain) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | No       | -       | Google OAuth client ID (optional)     |
 
 #### **Docker Compose Configuration**
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `POSTGRES_PASSWORD` | Yes | - | PostgreSQL password |
+| Variable            | Required | Default | Description         |
+| ------------------- | -------- | ------- | ------------------- |
+| `POSTGRES_PASSWORD` | Yes      | -       | PostgreSQL password |
 
 ### **Dapr Configuration**
 
@@ -869,17 +869,14 @@ metadata:
 cd backend
 
 # Create virtual environment
-python -m venv .venv
+uv venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -e .
+uv sync
 
 # Run development server
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-
-# Run with debug logging
-DEBUG=true uvicorn src.main:app --reload
+fastapi dev src/main.py
 ```
 
 **Backend Development Tips:**
@@ -918,13 +915,13 @@ pnpm start
 ```bash
 # Recurring Service
 cd recurring-service
-pip install -e .
-uvicorn src.main:app --reload --port 8002
+uv sync
+fastapi dev src/main.py --port 8002
 
 # Notification Service
 cd notification-service
-pip install -e .
-uvicorn src.main:app --reload --port 8001
+uv sync
+fastapi dev src/main.py --port 8001
 ```
 
 ### **Local Dapr Development**
@@ -1143,30 +1140,6 @@ chore(deps): update dependencies
 ## 📄 License
 
 This project is licensed under the **MIT License**.
-
-```
-MIT License
-
-Copyright (c) 2025 TaskAI Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
 
 ---
 
