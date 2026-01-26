@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Recurring task service for TaskAI Phase 5"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.109.0",
+    "fastapi[standard]>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "httpx>=0.26.0",
     "structlog>=24.1.0",
