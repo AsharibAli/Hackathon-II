@@ -2,27 +2,14 @@
   <img src="frontend/public/favicon.svg" height="100" alt="TaskAI Logo" />
 </p>
 
-<h1 align="center">TaskAI - Intelligent Task Management System</h1>
+<h1 align="center">TaskAI - Organize your life, your way</h1>
 
 <p align="center">
-  <strong>AI-Powered Task Management with Dual Interface & Cloud-Native Microservices</strong>
+  A production-ready, event-driven, AI-powered task management platform featuring conversational AI (CUI) and traditional graphical UI (GUI) interfaces.
 </p>
 
 <p align="center">
-  A production-ready, event-driven task management platform featuring conversational AI (CUI) and traditional graphical UI (GUI) interfaces. Built with FastAPI microservices, Next.js frontend, PostgreSQL database, and Dapr for cloud-native scalability on Kubernetes.
-</p>
-
-<p align="center">
-  <a href="#-key-features"><strong>Features</strong></a> ·
-  <a href="#-architecture"><strong>Architecture</strong></a> ·
-  <a href="#-quick-start"><strong>Quick Start</strong></a> ·
-  <a href="#-deployment"><strong>Deployment</strong></a> ·
-  <a href="#-api-documentation"><strong>API Docs</strong></a> ·
-  <a href="#-contributing"><strong>Contributing</strong></a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Next.js-14+-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js-16+-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/FastAPI-0.125+-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
@@ -64,7 +51,7 @@
 
 ## 🎯 Overview
 
-TaskAI is a next-generation task management system that combines the power of artificial intelligence with a robust microservices architecture. It offers users two distinct ways to interact with their tasks:
+TaskAI is a next-generation task management system that combines the power of AI with a robust microservices architecture. It offers users two distinct ways to interact with their tasks:
 
 ### **Dual Interface Design**
 
@@ -1139,7 +1126,7 @@ chore(deps): update dependencies
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the [**MIT License**](./LICENSE).
 
 ---
 
@@ -1165,7 +1152,7 @@ This project is licensed under the **MIT License**.
 ---
 
 <p align="center">
-  <strong>Built with ❤️ for Hackathon II - Phase 5</strong>
+  <strong>Built with ❤️ by Asharib Ali</strong>
 </p>
 
 <p align="center">
